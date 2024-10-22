@@ -1,0 +1,43 @@
+.sc-width{
+    width:100px;    
+}
+/* .sc-panel-image{
+    width: 140px;
+    height: 120px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.24);
+    position: absolute;
+    margin: -8px 16px 0;
+    z-index: 100;
+} */
+.bh-btn-teacher{
+    margin-left:20px;
+}
+
+.sc-panel-container {
+    width: 240px;
+    min-height: 95px;
+}
+.jxrw-label-term {
+    padding:0px 0px 0px 20px;color:#bbb;
+}
+.jxrw-a-adjust {
+    font-size:12px;padding-left:10px;font-weight:normal;cursor:pointer
+}
+.name_left{
+    width: 20%;
+    margin-top:20px; 
+}
+.kbck-card-content {
+    word-break:break-all;vertical-align:top;width:120px;
+    margin-bottom: 4px!important;
+}
+
+.wut_container {
+    border:none;
+    box-shadow:none;
+    padding: 0;
+}
+
+.kbck-card-unset{
+    margin-bottom: 4px!important;
+}

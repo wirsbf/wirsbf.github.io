@@ -1,0 +1,74 @@
+.wut_container {
+    border: 1px solid #ddd;
+    padding: 12px;
+    position: static;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+}
+
+.wut_table {
+    border: 1px solid #d8dcf0;
+    width: 100%;
+}
+
+.wut_table td {
+    width: 30px;
+    height: 40px;
+    text-align: center;
+    border-top: 1px solid #d8dcf0;
+    border-right: 1px solid #d8dcf0;
+    vertical-align: top;
+}
+
+.mtt_arrange_item {
+    padding: 4px;
+    position: relative;
+    border-radius: 8px;
+    margin: 4px
+}
+
+.mtt_item_room {
+    
+    color: #ef971c;
+}
+
+.mtt_item_jxbmc {
+    max-height: 50%;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wut_table .mtt_bgcolor_grey {
+    background-color: #F0F1F9;
+    vertical-align: middle;
+}
+
+.mtt_item_kcmc {
+    font-weight: 700;
+    text-align: left;
+}
+
+.mtt_tzkc {
+    background-color: #F2F2F2;
+}
+
+.mtt_item_tzkcicon {
+    text-align: left;
+}
+
+.highLight{
+    background-color: #F6F7FB!important;
+    color: #333;
+}
+.mtt_bgcolor_grey.highLight{
+    background-color: #d8dcf0!important;
+    color: #333;
+}
+/* 自习样式 */
+.mtt_item_zixi {
+    text-align: center;
+    height: 60px;
+    width: 10%; 
+    display: table-cell;
+    vertical-align: middle;
+}

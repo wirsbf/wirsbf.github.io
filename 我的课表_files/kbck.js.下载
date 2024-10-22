@@ -1,0 +1,675 @@
+define(function(require) {
+
+  var utils = require('utils');
+  var zttk = require('../zttk/zttk');
+  var kblb = require('../kblb/kblb');
+  var rlkb = require('./rlkb/rlkb');
+  var pub_param={};
+  var nqxnxq="";
+  var dqxq="";//当前星期几
+  var tkType = '0';
+  var self = '';
+  var totalJc = '';
+  var printBb = require('./printkb/printkb');
+  var ZZC = "22";
+  
+  var viewConfig = {
+    initialize: function(param,xnxq) {
+    	self = this;
+    	this.pushSubView([kblb,rlkb]);
+    	nqxnxq=param.xnxqdm;
+    	//获取当年学年学期校历总周次
+    	self.getZcc(nqxnxq);
+    	var week=self.initZc();
+    	if(week!=null && week<ZZC){
+    		param.zc=week;
+    	} 
+    	pub_param=param;
+      	var indexView = utils.loadCompiledPage('kbckIndexPage', require);
+      	var list=this.initTkWpk();
+      	self.$rootElement.html(indexView.render({data:list}), true);
+      	$("#zkbzc").text(param.zc);
+	  
+      	$('#zttk_zc').on('click', function(e){
+      		self.initZttk(tkType);
+      	});
+      	
+      	if(pub_param.isStudent == false){
+      		$('.bh-buttons').append('<a href="javascript:void(0)" class="bh-btn bh-btn-small bh-btn-default" data-action="日历课表">日历课表</a>');
+      	}
+      	if(pub_param.isStudent == true){
+      		$('.bh-buttons').append('<a class="bh-btn bh-btn-small bh-btn-default" id="lxkccx" data-action="漏选课程查询">漏选课程查询</a>');
+      	}
+      	self.initXnxq(param);
+      	self.inintWeekTable(xnxq);
+      	self.initClick();
+      	self.initWpkAndTkHeight();
+      	self.eventMap = {
+      			'[data-action="日历课表"]' : this.actionRlkbck,
+      			'[data-action="漏选课程查询"]' : this.actionLxkcccx
+      	};
+      	$('div[data-action="周课表学年学期"]').trigger("click");
+    },
+    
+    actionRlkbck:function(event){
+    	var rzlbdm = self.getRZLB(roleId);
+    	var res = BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxkbsffb.do'),{XNXQDM: pub_param.xnxqdm,FBJSDM:rzlbdm});
+    	if(res.datas.cxkbsffb.rows[0].CNT=='0'){
+    		$.bhTip({
+        		content : '查询学年学期的课程未发布',
+				state : 'warning'
+        	});
+    		return false;
+    	}
+    	rlkb.initialize({JSDM:userId,JSMC:pub_param.XM,XNXQDM:pub_param.xnxqdm,XNXQMC:pub_param.xnxqmc});
+    },
+    getRZLB:function(ROLEID){
+    	var ret='';
+    	var temp=BH_UTILS.doSyncAjax(context_path+'/sys/funauthapp/*default/qxgl/EMAP_SAPP_ROLE_RELATION_QUERY.do',{'ROLEID':ROLEID});	
+    	if(temp!=null && temp.datas!=null && temp.datas.EMAP_SAPP_ROLE_RELATION_QUERY.rows.length>0)
+    	{
+    		ret=temp.datas.EMAP_SAPP_ROLE_RELATION_QUERY.rows[0].CONTAINSROLES;
+    	}
+    	return ret;
+    },
+    actionLxkcccx:function(){
+    	BH_UTILS.bhDialogSuccess({
+            title:'',
+            content:'请点击网址xk.xidian.edu.cn,登录选课应用查看漏选课程信息。',
+            callback:function(){
+                $("mark").text('按钮的回调函数');
+            },
+            more:{
+                text:'xk.xidian.edu.cn',
+                link:'https://xk.xidian.edu.cn/xsxk/profile/index.html'
+            }
+        });
+    },
+    
+    initZc:function(){
+    	var week=1;
+    	var xnxqArr = nqxnxq.split("-");
+		var xn = xnxqArr[0] + "-" + xnxqArr[1];
+		var xq = xnxqArr[2];
+		var myDate = new Date();
+		var year = myDate.getFullYear();
+		var month = myDate.getMonth() + 1;
+		var day = myDate.getDate();
+		var rq = year + '-' + month + '-' + day;// 拼写出的日期2015-3-27
+		var dqrqParams ={XN: xn,XQ: xq,RQ: rq};
+    	var data=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/jshkcb/dqzc.do"), dqrqParams);
+    	if(data.datas.dqzc.extParams.code==1 && data.datas.dqzc.rows.length == 1){
+    		week=data.datas.dqzc.rows[0].ZC;
+    		if(week <= 0){
+    			week = 1;
+    		}
+    		dqxq=data.datas.dqzc.rows[0].XQJ;
+    	}
+    	return week;
+    },
+    
+    actionCheckXnxqKb:function(){
+    	$("div[data-action='周课表学年学期']").hide();
+    	$("div[data-action='周课表周课表']").show();
+    	$("div[data-action='周课表切换']").hide();
+    	pub_param.zc="";
+    	pub_param.xnxqdm = $("#dqxnxq2").attr("value");
+    	self.inintWeekTable("xnxq");
+    	self.initWpkAndTk();
+		tkType = '1';
+		$('#zttk_zc').on('click', function(e){
+			self.initZttk(tkType);
+		});
+    },
+    
+    actionCheckZKb:function(){
+    	$("div[data-action='周课表切换']").show();
+    	$("div[data-action='周课表学年学期']").show();
+    	$("div[data-action='周课表周课表']").hide();
+    	pub_param.zc=$("#zkbzc").text();
+    	pub_param.xnxqdm = $("#dqxnxq2").attr("value");
+    	self.inintWeekTable();
+    	self.initWpkAndTk();
+		
+		tkType = '0';
+		$('#zttk_zc').on('click', function(e){
+			self.initZttk(tkType);
+		});
+    },
+    
+    actionLeft:function(){
+    	$("div[data-action='周课表学年学期']").show();
+    	$("div[data-action='周课表周课表']").hide();
+    	var zc=$("#zkbzc").text();
+    	if(zc>1){
+    		$("#zkbzc").text(parseInt(zc)-1);
+    	}
+    	if(zc==1){
+    		$("#zkbzc").text(ZZC);
+    	}
+		pub_param.zc=$("#zkbzc").text();
+		pub_param.xnxqdm = $("#dqxnxq2").attr("value");
+		self.inintWeekTable();
+		self.initWpkAndTk();
+		$('#zttk_zc').on('click', function(e){
+			self.initZttk(tkType);
+		});
+    },
+    
+    actionRight:function(){
+    	$("div[data-action='周课表学年学期']").show();
+    	$("div[data-action='周课表周课表']").hide();
+    	var zc=$("#zkbzc").text();
+    	if(zc<ZZC){
+    		if((parseInt(zc) + 1) == 0){
+    			$("#zkbzc").text(parseInt(zc)+2);
+    		}else{
+    			$("#zkbzc").text(parseInt(zc)+1);
+    		}
+    	}
+    	if(zc>=ZZC){
+    		$("#zkbzc").text(1);
+    	}
+    	pub_param.zc=$("#zkbzc").text();
+		pub_param.xnxqdm = $("#dqxnxq2").attr("value");
+		self.inintWeekTable();
+		self.initWpkAndTk();
+		$('#zttk_zc').on('click', function(e){
+			self.initZttk(tkType);
+		});
+    },
+    
+    initClick:function(){
+    	$('a[data-action="更改2"]').off('click').on('click', function() {
+    		self.actionChange();
+    	});
+    	/**
+    	 * 打印、下载都为全学期打印
+    	 */
+    	$('a[id="print_button"]').off('click').on('click', function() {
+    		//self.print();
+    		self.printAndDownload();
+    	});
+    	/** 2019-06-05 01116336 隐藏下载按钮功能  **/
+    	/*$('a[id="down_button"]').off('click').on('click', function() {
+    		//self.down_picture();
+    		self.printAndDownload();
+    	});*/
+
+    	$('i[data-action="周课表左移"]').off('click').on('click', function() {
+    		self.actionLeft();
+    	});
+    	$('i[data-action="周课表右移"]').off('click').on('click', function() {
+    		self.actionRight();
+    	});
+    	$('div[data-action="周课表学年学期"]').off('click').on('click', function() {
+    		self.actionCheckXnxqKb();
+    	});
+    	$('[data-action="周课表周课表"]').off('click').on('click', function() {
+    		self.actionCheckZKb();
+    	});
+    	
+    	$('a[id="kblb"]').off('click').on('click', function() {
+    		kblb.initialize(pub_param);
+    	});
+    },
+    
+    isIE:function() { //ie?  
+	    if (!!window.ActiveXObject || "ActiveXObject" in window){
+	    	return true;  
+	    }else{
+	    	return false;  
+	    }  
+	},
+	
+	printAndDownload : function(){
+		if(totalJc == 12){// 调用12节次的课表
+			//self.checkStuAndTea(12);
+			printBb.initialize(pub_param,12);
+		}else{// 调用10节次的课表
+			//self.checkStuAndTea(10);
+			printBb.initialize(pub_param,10);
+		}
+	},
+	
+	// 区分学生教师身份
+	checkStuAndTea : function(jc){
+		if(pub_param.isStudent){ 
+			//学生
+			var param = {
+				TYPE : "WDKB_XSKB"
+			};
+			var data = utils.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/xskcb/bbqxxr.do"),param);
+			if(data.code == 0  && data.datas.bbqxxr.extParams.code==1){
+				var QUERYID = data.datas.bbqxxr.extParams.msg;
+				window.open(WIS_EMAP_SERV.getContextPath()+"/sys/frReport2/show.do?reportlet=wdkb/timeTableForStu"+jc+".cpt&XH="+userId+"&XNXQDM="+pub_param.xnxqdm+"&QUERYID="+QUERYID);
+			}
+    	}else{
+    		//老师
+    		var param = {
+    			TYPE : "WDKB_LSKB"
+    		};
+    		var data = utils.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/jshkcb/bbqxxr.do"),param);
+    		if(data.code == 0  && data.datas.bbqxxr.extParams.code==1){
+    			var QUERYID = data.datas.bbqxxr.extParams.msg;
+    			window.open(WIS_EMAP_SERV.getContextPath()+"/sys/frReport2/show.do?reportlet=wdkb/timeTableForTea"+jc+".cpt&JSH="+userId+"&XNXQDM="+pub_param.xnxqdm+"&QUERYID="+QUERYID);
+//    		$("#kb_title").html($("#dqxnxq2").html() + "教师授课时间表");
+    		}
+    	}
+	},
+    
+    down_picture:function(){
+    	html2canvas($('#kcb_container').find('table'), {
+            onrendered: function(canvas) {
+            	//var isIe = /msie/.test(navigator.userAgent.toLowerCase());
+                if (self.isIE() || (navigator && navigator.userAgent.indexOf("Edge") !== -1)) {
+                    var blob = canvas.msToBlob();
+                    navigator.msSaveBlob(blob, 'my_schedule.png');
+                } else {
+                	var url = canvas.toDataURL();
+                    //以下代码为下载此图片功能
+                    var triggerDownload = $("<a>").attr("href", url).attr("download", "my_schedule.png").appendTo("body");
+                    triggerDownload[0].click();
+                    triggerDownload.remove();
+                }
+            }
+        });
+    },
+    
+    print:function(){
+    	if(pub_param.isStudent){
+    		$("#kb_title").html($("#dqxnxq2").html() + "课表");
+    	}else{
+    		$("#kb_title").html($("#dqxnxq2").html() + "教师授课时间表");
+    	}
+    	$("#ry_infor").html(pub_param.info);
+    	$("div[id='print_area']").printArea();
+    	$("#kb_title").html("");
+    	$("#ry_infor").html("");
+    },
+    
+    initTkWpk:function(){
+    	if(!pub_param.flag){
+    		return;
+    	}
+    	var params=self.getParam();
+    	var data2=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath(pub_param.wpkurl), params);
+    	params['*order'] = '-SQSJ';
+    	var data1=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath(pub_param.tkurl), params);
+    	var tkurl_data=data1.datas[pub_param.tk_ation].rows;
+    	var wpkurl_data=data2.datas[pub_param.wpk_action].rows;
+    	var kcList={};
+    	//kcList.tk_data=tkurl_data;
+    	//kcList.wpk_data=wpkurl_data;
+    	if(tkurl_data.length == 0 || data1.datas[pub_param.tk_ation].extParams.code!=1){
+    		kcList.tk_empty=[{}];
+    	}else{
+    		for(var i=0;i<tkurl_data.length;i++){
+    			var tk=tkurl_data[i];
+    			if('01'==tk.TKLXDM){//调课
+    				tkurl_data[i].TK=1;
+    			}else if('02'==tk.TKLXDM){//停课
+    				tkurl_data[i].DK=1;
+    			}else{//补课
+    				tkurl_data[i].BK=1;
+    			}
+    		}
+    		kcList.tk_data=tkurl_data;
+    	}
+    	if(wpkurl_data.length == 0 || data2.datas[pub_param.wpk_action].extParams.code!=1){
+    		kcList.wpk_empty=[{}];
+    	}else{
+    		kcList.wpk_data=wpkurl_data;
+    	}
+    	return kcList;
+    },
+    
+    getParam:function(){
+    	var params={};
+    	params.XNXQDM=pub_param.xnxqdm;
+    	if(pub_param.zc!=""){
+    		params.SKZC=pub_param.zc;
+    	}
+    	return params;
+    },
+    
+    inintWeekTable:function(value){
+    	var params=self.getParam();
+    	var data=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath(pub_param.url), params);
+    	var kb_data=data.datas[pub_param.action].rows;
+        var results=[];
+        if(kb_data.length>0){
+        	for(var i=0;i<kb_data.length;i++){
+        		var kb={};
+        		kb.kcdm=kb_data[i].KCH;
+        		kb.kxh = kb_data[i].KXH;
+        		kb.kcmc=kb_data[i].KCM;
+        		kb.jxbid=kb_data[i].JXBID;
+        		kb.beginUnit=kb_data[i].KSJC;
+        		kb.endUnit= kb_data[i].JSJC;
+        		kb.week=kb_data[i].SKXQ+"";
+        		kb.KBID= kb_data[i].KBID;
+        		kb.KBLB = kb_data[i].KBLB;
+        		if(kb_data[i].KBLB == '2'){
+        			kb.syxmmc = kb_data[i].SYXMMC,
+        			kb.syxzmc = kb_data[i].SYXZMC,
+        			kb.ms = '[实]' + kb_data[i].MS
+        		}
+        		//kb.weekNum= kb_data[i].SKXQ;
+                //weekName: kb_data.ZCMC;
+        		kb.teacherName= kb_data[i].SKJS;
+        		if(pub_param.action != "jaskcb"){
+//        			if(value == "xnxq"){
+//            			kb.classroomName = kb_data[i].ZCMC+",星期"+kb_data[i].SKXQ+","+kb_data[i].KSJC+"-"+kb_data[i].JSJC+"节,"+(kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+//            		}else{
+//            			kb.classroomName = (kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+//            		}
+    				if(kb_data[i].KBLB == '2'){
+            			if(value == "xnxq"){
+                			kb.classroomName = kb_data[i].ZCMC+","+kb_data[i].KSJC+"-"+kb_data[i].JSJC+"节,"+kb_data[i].KSSJ+"-"+kb_data[i].JSSJ+","+(kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+                		}else{
+                			kb.classroomName = kb_data[i].KSJC+"-"+kb_data[i].JSJC+"节,"+kb_data[i].KSSJ+"-"+kb_data[i].JSSJ+","+(kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+                		}
+        			}else{
+               			if(value == "xnxq"){
+                			kb.classroomName = kb_data[i].ZCMC+",星期"+kb_data[i].SKXQ+","+kb_data[i].KSJC+"-"+kb_data[i].JSJC+"节,"+(kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+                		}else{
+                			kb.classroomName = (kb_data[i].JASMC == null ? "无" : kb_data[i].JASMC);
+                		}
+        			}
+        		}
+        		if(pub_param.action == "jskcb"){
+        			kb.className = (kb_data[i].SKBJ == null ? "" : kb_data[i].SKBJ);
+        			if(kb.className.length > 15){
+        				kb.classNameCut = kb.className.substring(0, 15) + "...";
+        			}else{
+        				kb.classNameCut = kb.className;
+        			}
+        		}
+        		kb.tzkc=(kb_data[i].ISTK==0 ? false:true);
+        		results.push(kb);
+        	}
+        }else{
+        	if($('.bh-tip').length == 0 && !(data.code == '0' && data.datas && data.datas[pub_param.action].extParams.code == '1')){
+            	$.bhTip({
+            		content : data.datas?data.datas[pub_param.action].extParams.msg: '查询课表失败',
+    				state : 'warning'
+            	});
+        	}
+        }
+        if(value != 'xnxq'){
+    		results = self.initKbData(results);
+    	}
+        var strs = pub_param.xnxqdm.split("-");
+        var data = BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/jshkcb/cxjcs.do"), {"XN":strs[0]+"-"+strs[1],"XQ":strs[2]});
+        var rows = data.datas.cxjcs.rows;
+        var total = 12;
+        totalJc = total;
+        var swjc = 4;
+        var xwjc = 4;
+        var wsjc = 4;
+        if(rows.length>0){
+        	total = parseInt(rows[0].SFJJ == null ? 4 : rows[0].SFJJ) + parseInt(rows[0].XFJJ == null ? 4 : rows[0].XFJJ) + parseInt(rows[0].WSJJ == null ? 4 : rows[0].WSJJ);
+        	totalJc = total;
+        	swjc = rows[0].SFJJ == null ? 4 : rows[0].SFJJ;
+        	xwjc = rows[0].XFJJ == null ? 4 : rows[0].XFJJ;
+        	wsjc = rows[0].WSJJ == null ? 4 : rows[0].WSJJ;
+        }
+        var weeks = [{
+            code: "1",
+            name: "星期一"
+        }, {
+            code: "2",
+            name: "星期二"
+        }, {
+            code: "3",
+            name: "星期三"
+        }, {
+            code: "4",
+            name: "星期四"
+        }, {
+            code: "5",
+            name: "星期五"
+        }, {
+            code: "6",
+            name: "星期六"
+        }, {
+            code: "7",
+            name: "星期日"
+        }];
+        var units = [];
+        for(var i=0;i<total;i++){
+        	units.push({code: (i+1),name: (i+1)});
+        }
+        var unitsSpread = [{
+            code: "1",
+            name: "上午",
+            spread: swjc
+        }, {
+            code: "2",
+            name: "下午",
+            spread: xwjc
+        }, {
+            code: "3",
+            name: "晚上",
+            spread: wsjc
+        }];
+        var weekUnitTableInfo;
+        if(dqxq==""){
+        	weekUnitTableInfo = new WeekUnitTableInfo({
+                container: '.d',//必填
+                weeks: weeks,
+                units: units,
+                unitsSpread:unitsSpread,
+                unitMode: 2 
+            });
+        }else{
+        	weekUnitTableInfo = new WeekUnitTableInfo({
+                container: '.d',//必填
+                weeks: weeks,
+                units: units,
+                unitsSpread:unitsSpread,
+                unitMode: 2,
+                highLightWeeks:dqxq
+            });
+        }
+        weekUnitTableInfo.render();
+        weekUnitTableInfo.setResults(results, function() {
+        	if(pub_param.action == 'xsllsykb'){
+        		$('[data-role="item"]').each(function() {
+        			if($(this).children().length == 0 && this.getAttribute('data-week') < 6 ){
+        				$(this).append('<div class="mtt_arrange_item" style = "background: lightskyblue";><div class="mtt_item_zixi">自习</div></div>')
+        			}
+        		});
+        	}
+        });
+        
+    },
+    
+    initXnxq: function(param){
+    	$("#dqxnxq2").html(param.xnxqmc);
+	    $("#dqxnxq2").attr("value",param.xnxqdm);
+	},
+	
+    actionChange: function() {
+    	var indexView = utils.loadCompiledPage('./ggxnxq', require);
+    	utils.window({
+    		title: '更改学年学期',
+    		content: indexView.render(),
+    		height: 'auto',
+    		width: '465px',
+    		buttons: [{ //选填
+    			text: '确定',
+    			className: 'bh-btn-primary',
+    			callback: function() {
+    				var selectedItem = $('.dropdowm-xnxqList2').jqxDropDownList("getSelectedItem");
+    				$("#dqxnxq2").html(selectedItem.label);
+    			    $("#dqxnxq2").attr("value",selectedItem.value);
+    				//pkglUtil.Dom.setXnxqText({MC: selectedItem.label, DM: selectedItem.value});
+    			    $("div[data-action='周课表切换']").show();
+    			    $("div[data-action='周课表学年学期']").show();
+    		    	$("div[data-action='周课表周课表']").hide();
+    				pub_param.zc=$("#zkbzc").text();
+    				pub_param.xnxqdm = selectedItem.value;
+    				pub_param.xnxqmc = selectedItem.label;
+    				self.getZcc(pub_param.xnxqdm);
+    				self.inintWeekTable();
+    				self.initWpkAndTk();
+    				$('#zttk_zc').on('click', function(e){
+    					self.initZttk(tkType);
+    				});
+    				$('div[data-action="周课表学年学期"]').trigger("click");
+    				return true;
+    			}
+    		}, {
+    			text: '取消',
+    			className: 'bh-btn-default',
+    			callback: function() {}
+    		}]
+    	});
+    	$('.dropdowm-xnxqList2').jqxDropDownList({
+            source: self.getXNXQSource(),
+            selectedIndex: 0,
+            width: '100%',
+            height: '25px'
+          });
+        $('.dropdowm-xnxqList2').jqxDropDownList('selectItem',$("#dqxnxq2").attr("value"));
+    },
+    
+    getXNXQSource:function(){
+    	var data=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/jshkcb/xnxqcx.do"), {"*order":"-DM"});
+    	var xnxqList = [{value:"",label:"请选择"}];
+		for (var i = 0; i < data.datas.xnxqcx.rows.length; i ++) {
+			var r = data.datas.xnxqcx.rows[i];
+			xnxqList.push({ value: r.DM, label: r.MC });
+		}
+		return xnxqList;
+    },
+    initZttk:function(type) {
+    	var xnxqdm = $("#dqxnxq2").attr("value");
+    	var zc = $("#zkbzc").text();
+    	var param = new Object();
+    	param.xnxqdm = xnxqdm;
+    	if (type != null && type == '0') {
+    		param.zc = zc;
+    	}    	
+    	zttk.initialize(param);
+    },
+    
+    /**
+     * 处理课表数据与调课数据，根据调课数据修改课表数据
+     */
+    initKbData: function(results){
+    	var retultTmp = [];
+    	var tkWpkDataList = self.initTkWpk();
+    	if(tkWpkDataList.tk_data && tkWpkDataList.tk_data.length > 0){
+    		var mixedKbid = ','; //记录有交集的KBID
+    		var xzcFlag = null; //调停补课后的本周次是否上课
+    		var xjsFlag = true; //调停补课后本教师是否还上课
+    		$.each(tkWpkDataList.tk_data, function(index, tkObj){
+    			if(tkObj.TKLXDM != '02'){ //非停课，即为 调课、补课
+                	xzcFlag = tkObj.XSKZC[parseInt(pub_param.zc) - 1] == '1';
+                	if(pub_param.action == "jskcb"){
+        				if((tkObj.XSKJS && tkObj.XSKJS.indexOf(userId) > -1) || (!tkObj.XSKJS && tkObj.YSKJS && tkObj.YSKJS.indexOf(userId) > -1)){
+        					//现上课教师存在且包含本登陆教师  或  先上课教师不存在但原上课教师存在且包含本登陆教师
+        					xjsFlag = true;
+        				}else{
+        					xjsFlag = false;
+        				}
+    				}else{
+    					xjsFlag = true;
+    				}
+                	if(tkObj.TKLXDM == '01'){//调课
+                		if(xzcFlag && xjsFlag){
+                            retultTmp.push({
+                                kcdm: tkObj.KCH,
+                                kxh:  tkObj.KXH,
+                                kcmc: tkObj.KCM,
+                                jxbid: tkObj.JXBID,
+                                beginUnit: tkObj.XKSJC?tkObj.XKSJC:tkObj.YKSJC,
+                                endUnit: tkObj.XJSJC?tkObj.XJSJC:tkObj.YJSJC,
+                                week: (tkObj.XSKXQ?tkObj.XSKXQ:tkObj.YSKXQ) + "",
+                                teacherName:  tkObj.XSKJS?tkObj.XSKJS:tkObj.YSKJS,
+                                classroomName: (tkObj.XJASMC?tkObj.XJASMC:tkObj.YJASMC)?"无":(tkObj.XJASMC?tkObj.XJASMC:tkObj.YJASMC),
+                                tzkc: true
+                            });
+                        }
+                	}else{//补课
+                		if(xzcFlag && xjsFlag){
+                            retultTmp.push({
+                                kcdm: tkObj.KCH,
+                                kxh:  tkObj.KXH,
+                                kcmc: tkObj.KCM,
+                                jxbid: tkObj.JXBID,
+                                beginUnit: tkObj.XKSJC,
+                                endUnit: tkObj.XJSJC,
+                                week: tkObj.XSKXQ + '',
+                                teacherName:  tkObj.XSKJS,
+                                classroomName: (tkObj.XJASMC == null ? "无" : tkObj.XJASMC),
+                                tzkc: true
+                            });
+                        }
+                	}
+                }
+    			if(tkObj.SKZC && (tkObj.SKZC[parseInt(pub_param.zc) - 1] == '1')){ //调整的本周次课表
+    				mixedKbid += tkObj.KBID + ',';
+    			}
+    		});
+    		$.each(results, function(index, obj){
+    			if(mixedKbid.indexOf(',' + obj.KBID + ',') == -1){
+    				retultTmp.push(obj);
+    			}
+    		});
+    	}else{
+    		retultTmp = results;
+    	}
+    	return retultTmp;
+    },
+    initWpkAndTk: function(){
+ 	   var wptk = utils.loadCompiledPage('wptk', require);
+ 	   $("#wptk_contaner").html(wptk.render({data:self.initTkWpk()}), true);
+ 	  self.initWpkAndTkHeight();
+    },
+    initWpkAndTkHeight: function(){
+  	  $.initHeightByOtherDom({
+  	   	  baseElement: {
+  	   	  	selector: '#kcb_container', //依据元素的选择器,取值时会包含padding和margin
+  	   	  	heightDifference: 57 //依据元素的高度差（此值会加上元素高度作为最终依据的高度）
+  	   	  },
+  	      targetElement: [{
+  	      	selector: '.wpk-container', //目标元素的选择器
+  	   	  	heightDifference: -48, //目标元素的高度差（此值会加上元素高度作为最终依据的高度，一般传负值）
+  	   	  	scale: 0.5, //比例（每个目标所占依据高度的比例）
+  	   	  	style: 'max-height' //设置的高度类型， 默认为height
+  	      },{
+  	      	selector: '.tk-container',
+  	   	  	heightDifference: -64,
+  	   	  	scale: 0.5,
+  	   	  	style: 'max-height'
+  	      }]
+  	  });
+    },
+    /*********************
+     * 获取当前学年学期，校历总周次
+     ********************/
+    getZcc :function(XNXQDM){
+    	if(!XNXQDM){
+    		return;
+    	}
+    	var xnxqArr = XNXQDM.split("-");
+    	if(xnxqArr.length<3){
+    		return;
+    	}
+    	var param = {
+    		XN : xnxqArr[0]+"-"+xnxqArr[1],
+    		XQ : xnxqArr[2]
+    	};
+    	var data = utils.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/xskcb/cxxljc.do"),param);
+		if(data.code == 0  && data.datas.cxxljc.extParams.code==1){
+			ZZC = data.datas.cxxljc.rows[0].ZZC;
+		}
+    }
+  };
+
+  return viewConfig;
+});

@@ -1,0 +1,83 @@
+define(function(require) {	
+	var utils = require('utils');
+	var bs = require('./zttkBS');
+	
+	var viewConfig = {
+		initialize : function(param) {
+			var self = this;
+			var indexView = utils.loadCompiledPage('zttkIndex', require);
+			$.bhPaperPileDialog.show({
+		    	content : indexView.render(),
+		        ready : function() {
+		        	self.initAdvancedQueryAndTable(param);
+		        },
+		        close : function() {
+		        	
+		        }
+		    });
+			
+			self.eventMap = {
+				
+			};
+		},
+		// 初始化表格
+        initAdvancedQueryAndTable : function(param) {
+        	var queryParam = {};
+        	queryParam.XNXQDM = param.xnxqdm;
+        	if (param.zc != null) {
+        		queryParam.ZC = param.zc;
+        	}        	
+			var tableOptions = {
+		        pagePath: bs.api.pageModel,
+		        action: bs.api.cxztdkjl,
+		        params: queryParam,
+		        searchElement: $('#tkjl-index-search')
+		        //customColumns: this.getCustomColumns()
+			};
+			var searchData = WIS_EMAP_SERV.getModel(bs.api.pageModel, bs.api.cxztdkjl, "search");
+			$('#tkjl-index-search').emapAdvancedQuery({
+				data: searchData,
+		        showTotalNum: true
+			});
+			$('#tkjl-index-search').on('search', this.searchCallback);
+			$('#tkjl-index-table').emapdatatable(tableOptions);
+		},
+		// 高级查询
+		searchCallback : function(e, data, opts) {
+			$('#tkjl-index-table').emapdatatable('reloadFirstPage', {
+		        querySetting: data
+			});
+		},
+		// 自定义列
+		getCustomColumns : function() {
+			var customColumns = [
+             	{colIndex: 0, type: 'checkbox', pinned: true},
+			    {
+		            colIndex : '1',
+		            type : 'tpl',
+		            column : {
+		            	text : '操作',
+		            	align : 'center',
+		            	cellsalign : 'center',
+		            	pinned : true,
+		            	width : '150px',
+		            	cellsRenderer : function(row, column, value, rowData) {
+		            		var html = '<a href="javascript:void(0);" class="j-row-edit" data-action="update_tkjl" data-tkid="' + rowData.TKID + '">编辑</a>'
+		            			+ '&nbsp;&nbsp;<a href="javascript:void(0);" class="j-row-edit" data-action="del_one_tkjl" data-tkid="' + rowData.TKID + '">删除</a>';
+		            		return html;
+		            	}
+	            	}
+			    }
+            ];
+			return customColumns;
+		},
+		// 重载表格
+		reloadTable : function() {
+			var queryData = $('#tkjl-index-search').emapAdvancedQuery('getValue');
+			$('#tkjl-index-table').emapdatatable('reloadFirstPage', {
+		        querySetting: queryData
+			});
+		}
+	};
+	return viewConfig;
+});

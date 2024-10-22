@@ -1,0 +1,789 @@
+/**
+ * 公共方法
+ * 引用实例: 在index.jsp文件中：
+ * <script type="text/javascript" src="../../jwpubapp/public/script/publicFunction.js"></script>
+ */
+(function($) {
+    $.extend({
+    	
+    	/**
+    	 * querySetting中通过YXDM增加TGYXDM（托管院系代码）
+    	 */
+    	addTgyxSetting: function(querySetting){
+    		var setting = JSON.parse(querySetting);
+    		var result = [];
+    		$.each(setting, function(index, obj){
+    			if($.type(obj) == 'object'){
+    				if(obj.name == 'YXDM'){
+    					result.push([obj,{
+    						"name":"TGYXDM",
+    						"linkOpt":"OR",
+    						"builderList":"cbl_List",
+    						"builder":"equal",
+    						"value": obj.value
+    					}]);
+    				}else{
+    					result.push(obj);
+    				}
+    			}else{
+    				result.push(obj);
+    			}
+    		});
+    		return JSON.stringify(result);
+    	},
+    	bhTipSuccess: function(msg){
+    		$.bhTip({
+                content: msg,
+                state: 'success'
+            });
+    	},
+    	bhTipWarning: function(msg){
+    		$.bhTip({
+                content: msg,
+                state: 'warning'
+            });
+    	},
+    	bhTipDanger: function(msg){
+    		$.bhTip({
+                content: msg,
+                state: 'danger'
+            });
+    	},
+    	
+    	/**
+         * 构建周次名称(如1-3周(单),6-8周(双),11-13周)
+         */
+        buildWeekName: function(rawString) {
+        	if (rawString === null || rawString === undefined || rawString === "") {
+                return "";
+            }
+            var sawsb = '';
+            var regex = null;
+            var regexMatcher = null;
+            var begin = 0;
+            var end = 0;
+            sawsb += rawString + "00";
+            var LENS = sawsb.length;
+            var sb = '';
+            var sbArrTmp = [];
+            regex = new RegExp("(1{2," + LENS + "})");
+            while (regex.exec(sawsb)) {
+            	regexMatcher = regex.exec(sawsb);
+            	begin = regexMatcher.index;
+            	end = regexMatcher.index + regexMatcher[0].length;
+                if (sb.length > 0)
+                    sb += ",";
+                sb += (begin + 1);
+                sb += "-" + end + "周";
+                for (var k = begin; k < end; k++) {
+                	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                }
+            }
+            regex = new RegExp("((10){2," + (LENS - 1) + "})");
+            sbArrTmp = [];
+            while (regex.exec(sawsb)) {
+            	regexMatcher = regex.exec(sawsb);
+            	begin = regexMatcher.index;
+            	end = regexMatcher.index + regexMatcher[0].length;
+                if ((begin + 1) % 2 == 0) {
+                	sbArrTmp.push({
+                		value: regexMatcher[0],
+                		begin: begin,
+                		end: end
+                	});
+                	for (var k = begin; k < end; k++) {
+                    	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                    }
+                    continue;
+                }
+                if (sb.length > 0) {
+                    sb += ",";
+                }
+                sb += begin + 1;
+                if(end % 2 == 0){
+                	sb += "-" + (end - 1) + "周(单)";
+                }else{
+                	sb += "-" + end + "周(单)";
+                }
+                for (var k = begin; k < end; k++) {
+                	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                }
+            }
+            if(sbArrTmp.length > 0){
+            	for (var i = 0, tmpLength = sbArrTmp.length; i < tmpLength; i++) {
+            		sawsb = this.replacepos(sawsb, sbArrTmp[i].begin, sbArrTmp[i].end, sbArrTmp[i].value);
+            	}
+            }
+            sbArrTmp = [];
+            regex = new RegExp("((01){2," + (LENS - 1) + "})");
+            while (regex.exec(sawsb)) {
+            	regexMatcher = regex.exec(sawsb);
+            	begin = regexMatcher.index;
+            	end = regexMatcher.index + regexMatcher[0].length;
+                if ((begin + 1) % 2 == 0) {
+                	sbArrTmp.push({
+                		value: regexMatcher[0],
+                		begin: begin,
+                		end: end
+                	});
+                	for (var k = begin; k < end; k++) {
+                    	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                    }
+                    continue;
+                }
+                if (sb.length > 0) {
+                    sb += ",";
+                }
+                if (begin % 2 == 0) {
+                    sb += begin + 2;
+                } else {
+                    sb += begin + 3;
+                }
+                sb += "-" + end + "周(双)";
+                for (var k = begin; k < end; k++) {
+                	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                }
+            }
+            if(sbArrTmp.length > 0){
+            	for (var i = 0, tmpLength = sbArrTmp.length; i < tmpLength; i++) {
+            		sawsb = this.replacepos(sawsb, sbArrTmp[i].begin, sbArrTmp[i].end, sbArrTmp[i].value);
+            	}
+            }
+            regex = new RegExp("(1+)");
+            while (regex.exec(sawsb)) {
+            	regexMatcher = regex.exec(sawsb);
+            	begin = regexMatcher.index;
+            	end = regexMatcher.index + regexMatcher[0].length;
+                if (sb.length > 0)
+                    sb += ",";
+                if (begin + 1 == end) {
+                    sb += end + "周";
+                } else {
+                    sb += begin + 1;
+                    sb += "-" + end + "周";
+                }
+                for (var k = begin; k < end; k++) {
+                	sawsb = this.replacepos(sawsb, k, k + 1, '0');
+                }
+            }
+
+            var zcarr = sb.toString().split(",");
+            if (zcarr.length > 1) {
+            	zcarr.sort(function (obj1, obj2) {
+                    var s1 = obj1.toString().split("-|周")[0];
+                    var s2 = obj2.toString().split("-|周")[0];
+                    return parseInt(s1) - parseInt(s2);
+                });
+            }
+            var sbnew = '';
+            for (var i = 0, len = zcarr.length; i < len; i++) {
+                sbnew += zcarr[i] + ",";
+            }
+            return sbnew.substring(0, sbnew.length - 1);
+        },
+        
+        replacepos: function(text, start, stop, replacetext) {
+            mystr = text.substring(0, start) + replacetext + text.substring(stop);
+            return mystr;
+        },
+    	/**
+    	 * 根据dom高度重置目标高度（为了课表界面）
+    	   $.initHeightByOtherDom({
+    	   	  baseElement: {
+    	   	  	selector: '#pk', //依据元素的选择器,取值时会包含padding和margin
+    	   	  	heightDifference: 50 //依据元素的高度差（此值会加上元素高度作为最终依据的高度）
+    	   	  },
+    	      targetElement: [{
+    	      	selector: '#pk', //目标元素的选择器
+    	   	  	heightDifference: 50, //目标元素的高度差（此值会加上元素高度作为最终依据的高度，一般传负值）
+    	   	  	scale: 0.5, //比例（每个目标所占依据高度的比例）
+    	   	  	style: 'max-height' //设置的高度类型， 默认为height
+    	      },{
+    	      	selector: '#pk',
+    	   	  	heightDifference: 50,
+    	   	  	scale: 0.5,
+    	   	  	style: 'max-height'
+    	      }]
+    	   })
+    	 */
+    	initHeightByOtherDom: function(param){
+    		var $baseDom = $(param.baseElement.selector);
+    		if($baseDom.length != 1){
+    			return false;
+    		};
+    		var baseHeight = $baseDom.outerHeight() + parseFloat(param.baseElement.heightDifference);
+    		var $targetDom = null;
+    		var targetHeight = 0;
+    		var heightType = '';
+    		$.each(param.targetElement, function(index, obj){
+    			$targetDom = $(obj.selector);
+    			if($targetDom.length != 1){
+    				return true;
+    			}
+    			targetHeight = baseHeight * parseFloat(obj.scale) + parseFloat(obj.heightDifference);
+    			if(obj.style){
+    				heightType = obj.style;
+    			}else{
+    				heightType = 'height';
+    			}
+    			$targetDom.css(heightType, targetHeight);
+    		});
+    	},
+    	
+    	/**
+    	 * 拼接数据看板card的html字符串
+    	 * 总方法，根据type调用不同的子方法
+    	 */
+    	initCardHtmlStr: function(data) {
+    		var self = this; 
+    		var html = '';
+    	    if (data.title) {
+    	        html += '<div class="card-title"><span>' + data.title + '</span>';
+    	        if (data.subTitle) {
+    	            html += '<span class="sub-title">' + data.subTitle + '</span>';
+    	        }
+    	        html += '</div>';
+    	    }
+    	    $.each(data.list, function(index, obj){
+    	    	if(obj.type == '02'){ //数据块1
+    	    		html += self.initCardSquaresHtmlStr(obj, data.id);
+    	    	}else if(obj.type == '03'){ //数据列表1
+    	    		html += self.initCardKcStr(obj, data.id);
+    	    	}else if(obj.type == '04'){ //排课数据表格
+    	    		html += self.initCardPkStr(obj, data.id);
+    	    	}else if(obj.type == '05'){ //数据列表2，前三名有牌子
+    	    		html += self.initCardPxStr(obj, data.id);
+    	    	}else if(obj.type == '06'){ //数据块2
+    	    		html += self.initCardSquaresTwoHtmlStr(obj, data.id);
+    	    	}else{ //echart表格
+    	    		html += self.initCardEchartHtmlStr(obj, data.id);
+    	    	} 
+    	    });
+    	    return html;
+    	},
+    	
+    	/**
+    	 * 拼接数据看板card的html字符串
+    	 * 包含echart
+    	 */
+    	initCardEchartHtmlStr: function(data, id) {
+    	    var html = '<div class="echarts list-item">';
+    	    if (data.title) {
+    	        html += '<div class="min-title"><span>' + data.title + '</span>';
+    	        if (data.subTitle) {
+    	            html += '<span class="sub-title">' + data.subTitle + '</span>';
+    	        }
+    	        html += '</div>';
+    	    }
+    	    if (data.list && data.list.length > 0) {
+	            html += '<div class="echart-list bh-clearfix">';
+	            var buttonActive = "";
+	            var buttonList = null;
+	            var height = '480px';
+	            if(data.list.length > 1){
+	                height = '330px';
+	            }
+	            var width = '100%';
+	            var height1 = null;
+	            $.each(data.list, function (index, obj) {  
+	            	if(obj.width){
+	            		width = obj.width;
+	            	}
+	            	if(obj.height){
+	            		height = obj.height;
+	            	}
+	            	html += '<div class="echart-container bh-pull-left" style="width: ' + width + '; height: ' + height + ';">';
+	            	if(obj.buttonList){
+	            		buttonList = JSON.parse(obj.buttonList);
+	            		if(buttonList && buttonList.length > 0){
+	            			html += '<div class="button-list bh-clearfix" data-type="01">';
+	            			$.each(buttonList, function(index1, obj1){
+	            				if(obj1.length > 0){
+	            					html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+	            					$.each(obj1, function(index2, obj2){
+	            						buttonActive = obj2.active?'active':'';
+	            						html += '<button class="' + buttonActive + '" type="button" data-value="' + obj2.value + 
+	            						'" data-type="' + obj2.type + '" data-callback="' + (obj2.callback?obj2.callback:'') + '">' + obj2.name + '</button>';
+	            					});
+	            					html += '</div>';
+	            				}
+	            			});
+	            			html += '</div>';
+	            		}
+	            		height1 = (parseInt(height) - 45) + 'px';
+	        	    }else{
+	        	    	height1 = height;
+	        	    }
+	                html += '<div class="echart-item single-item" data-kbxmnrdm ="'+obj.id+'" id="' + id + '-' + index + 
+	                				'" style="width: 100%; height: ' + height1 + ';"></div>' + 
+	                		'</div>';
+	            });
+	            html += '</div>';
+	        }
+    	    html += '</div>';
+    	    return html;
+    	},
+    	/**
+    	 * 拼接数据看板card的html字符串
+    	 * 包含方块
+    	 */
+    	initCardSquaresHtmlStr: function(data) {
+    		var html = '<div class="squares list-item single-item">';
+    		if (data.title) {
+    			html += '<div class="min-title"><span>' + data.title + '</span>';
+    			if (data.subTitle) {
+    				html += '<span class="sub-title">' + data.subTitle + '</span>';
+    			}
+    			html += '</div>';
+    		}
+    		if(data.buttonList && data.buttonList.length > 0){
+    	    	html += '<div class="button-list bh-clearfix" data-type="02">';
+    	    	var buttonActive = '';
+    	    	$.each(data.buttonList, function(index, obj){
+    	    		if(obj.length > 0){
+    	    			html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+    	    			$.each(obj, function(index1, obj1){
+    	    				buttonActive = obj1.active?'active':'';
+    	    				html += '<button class="' + buttonActive + '" type="button" data-value="' + obj1.value + 
+    	    							'" data-type="' + obj1.type + '" data-callback="' + (obj1.callback?obj1.callback:'') + '">' + obj1.name + '</button>';
+    	    			});
+    	    			html += '</div>';
+    	    		}
+    	    	});
+    	    	html += '</div>';
+    	    }
+    		html += this.getSquareHtml(data.list);
+    	    html += '</div>';
+    	    return html;
+    	},
+    	
+    	
+    	/**
+    	 * 获取square列表部分HTML
+    	 */
+    	getSquareHtml: function(list) {
+    		var html = '';
+    		if (list && list.length > 0) {
+    			html += '<div class="square-list bh-clearfix">';
+    			var bgClass = '';
+    			var indexMod = 0;
+    			var style = '';
+    			$.each(list, function (index, obj) {
+    				indexMod = index % 4;
+    				switch (indexMod) {
+    				case 0:
+    					bgClass = 'bgbule';
+    					break;
+    				case 1:
+    					bgClass = 'bgred';
+    					break;
+    				case 2:
+    					bgClass = 'bggreen';
+    					break;
+    				case 3:
+    					bgClass = 'bgyellow';
+    					break;
+    				default:
+    					bgClass = '';
+    				break;
+    				}
+    				if(obj.width || obj.right){
+    					style = 'style = "';
+    					if(obj.width){
+    						style += 'width: ' + obj.width + ';';
+    					}
+    					if(obj.right){
+    						style += 'margin-right: ' + obj.right + ';';
+    					}
+    					if(obj.onClick){
+    						style += 'cursor: pointer;';
+    					}
+    					style += '"';
+    				}else{
+    					style = '';
+    				}
+    				var classId='';
+    				if(obj.classId){
+    					classId=obj.classId;
+    				}
+    				var onClick='';
+    				if(obj.onClick){
+    					onClick='onClick=\'javascript:'+obj.onClick+';\'';
+    					if(!style){
+    						style='style = "cursor: pointer;"';
+    					}
+    				}
+    				html += '<div class="square bh-pull-left ' + bgClass + ' '+ classId + '" ' + style + ' '+onClick+'><div class="number">' + obj.number + 
+    				'</div><div class="caption">' + obj.caption + '</div></div>';
+    			});
+    			html += '</div>';
+    		}
+    		return html;
+    	},
+
+    	/**
+    	 * 拼接数据看板数据块2的html字符串
+    	 * 业务开展情况
+    	 */
+    	initCardSquaresTwoHtmlStr: function(data) {
+    		var html = '<div class="squares2 list-item single-item">';
+    		if (data.title) {
+    			html += '<div class="min-title"><span>' + data.title + '</span>';
+    			if (data.subTitle) {
+    				html += '<span class="sub-title">' + data.subTitle + '</span>';
+    			}
+    			html += '</div>';
+    		}
+    		if(data.buttonList && data.buttonList.length > 0){
+    			html += '<div class="button-list bh-clearfix" data-type="02">';
+    			var buttonActive = '';
+    			$.each(data.buttonList, function(index, obj){
+    				if(obj.length > 0){
+    					html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+    					$.each(obj, function(index1, obj1){
+    						buttonActive = obj1.active?'active':'';
+    						html += '<button class="' + buttonActive + '" type="button" data-value="' + obj1.value + 
+    						'" data-type="' + obj1.type + '" data-callback="' + (obj1.callback?obj1.callback:'') + '">' + obj1.name + '</button>';
+    					});
+    					html += '</div>';
+    				}
+    			});
+    			html += '</div>';
+    		}
+    		html += this.getSquareTwoHtml(data.list);
+    		html += '</div>';
+    		return html;
+    	},
+    	
+    	
+    	/**
+    	 * 获取square列表部分HTML
+    	 */
+    	getSquareTwoHtml: function(list) {
+    		var html = '';
+    		if (list && list.length > 0) {
+    			html += '<div class="square-list bh-clearfix">';
+    			var bgClass = '';
+    			var indexMod = 0;
+    			var style = '';
+    			$.each(list, function (index, obj) {
+    				indexMod = index % 4;
+    				switch (indexMod) {
+    				case 0:
+    					bgClass = 'bgbule';
+    					break;
+    				case 1:
+    					bgClass = 'bgred';
+    					break;
+    				case 2:
+    					bgClass = 'bggreen';
+    					break;
+    				case 3:
+    					bgClass = 'bgyellow';
+    					break;
+    				default:
+    					bgClass = '';
+    				break;
+    				}
+    				if(obj.width){
+    					style = 'style = "width: ' + obj.width + '"';
+    				}else{
+    					style = '';
+    				}
+    				html += '<div class="square bh-pull-left ' + bgClass + '" ' + style + '><div class="bh-clearfix">' + 
+    							'<div class="captions bh-pull-left">' + 
+    								'<div class="caption">' + obj.caption  + '</div>' + 
+    								'<div class="sub-caption">' + obj.subCaption  + '</div>' + 
+    							'</div>' + 
+    							'<div class="number bh-pull-left">' + obj.number +  '</div>' + 
+							'</div></div>';
+    			});
+    			html += '</div>';
+    		}
+    		return html;
+    	},
+    	
+    	
+    	
+    	/**
+    	 * 拼接数据看板card的html字符串
+    	 * 课程列表（溢出率）
+    	 */
+    	initCardKcStr: function(data) {
+    		var html = '<div class="course list-item single-item">';
+    	    if (data.title) {
+    	        html += '<div class="min-title"><span>' + data.title + '</span>';
+    	        if (data.subTitle) {
+    	            html += '<span class="sub-title">' + data.subTitle + '</span>';
+    	        }
+    	        html += '</div>';
+    	    }
+    	    if(data.buttonList && data.buttonList.length > 0){
+    	    	var buttonActive = '';
+    	    	html += '<div class="button-list bh-clearfix" data-type="03">';
+    	    	$.each(data.buttonList, function(index, obj){
+    	    		if(obj.length > 0){
+    	    			html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+    	    			$.each(obj, function(index1, obj1){
+    	    				buttonActive = obj1.active?'active':'';
+    	    				html += '<button class="' + buttonActive + '" type="button" data-value="' + obj1.value + 
+    	    							'" data-type="' + obj1.type + '" data-callback="' + (obj1.callback?obj1.callback:'') + '">' + obj1.name + '</button>';
+    	    			});
+    	    			html += '</div>';
+    	    		}
+    	    	});
+    	    	html += '</div>';
+    	    }
+    	    html += this.getCardKcHtml(data.list);
+    	    html += '</div>';
+    	    return html;
+    	},
+    	/**
+    	 * 获取课程部分html
+    	 */
+    	getCardKcHtml: function(list) {
+    		var html = '';
+    		if (list && list.length > 0) {
+    			html += '<div class="kc-list">';
+    			var bgClass = '';
+    			var indexMod = 0;
+    			$.each(list, function (index, obj) {
+    				indexMod = index % 5;
+    				switch (indexMod) {
+    				case 0:
+    					bgClass = 'dsj_div';
+    					break;
+    				case 1:
+    					bgClass = 'xxds_div';
+    					break;
+    				case 2:
+    					bgClass = 'xxaq_div';
+    					break;
+    				case 3:
+    					bgClass = 'gdsx_div';
+    					break;
+    				case 4:
+    					bgClass = 'xxdssec_div';
+    					break;
+    				default:
+    					bgClass = '';
+    				break;
+    				}
+    				var name = obj.kcm;
+    				if(!name){
+    					name = obj.name;
+    				}
+    				var subname = obj.kxh;
+    				if(!subname){
+    					subname = (obj.subname?obj.subname:'');
+    				}else{
+    					subname = '课序号：' + subname;
+    				}
+    				html += '<div class="yxl_info_div bh-clearfix ' + bgClass + '">' + 
+    				'<div class="yxl_info_num_div bh-pull-left">' + (index + 1) + '</div>' + 
+    				'<div class="yxl_info_detail_div bh-pull-left">' +
+    				'<div>' + 
+    				'<span class="lesson">' + name + '</span>' + 
+    				'<span class="number">' + subname + '</span>' + 
+    				'</div>' + 
+    				'<div>';
+    				$.each(obj.list, function(index1, obj1){
+    					html +=  '<span class="yxl_span" title="' + obj1.name + ':' + obj1.value + '"> ' + obj1.name + ':' + 
+    					obj1.value + '</span>';
+    				});
+    				html += '</div></div></div>';
+    			});
+    			html += '</div>';
+    		}
+    		return html;
+    	},
+
+    	/**
+    	 * 拼接数据看板排序的html字符串
+    	 * 运行情况
+    	 */
+    	initCardPxStr: function(data) {
+    		var html = '<div class="cardpx list-item single-item">';
+    		if (data.title) {
+    			html += '<div class="min-title"><span>' + data.title + '</span>';
+    			if (data.subTitle) {
+    				html += '<span class="sub-title">' + data.subTitle + '</span>';
+    			}
+    			html += '</div>';
+    		}
+    		if(data.buttonList && data.buttonList.length > 0){
+    			var buttonActive = '';
+    			html += '<div class="button-list bh-clearfix" data-type="03">';
+    			$.each(data.buttonList, function(index, obj){
+    				if(obj.length > 0){
+    					html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+    					$.each(obj, function(index1, obj1){
+    						buttonActive = obj1.active?'active':'';
+    						html += '<button class="' + buttonActive + '" type="button" data-value="' + obj1.value + 
+    						'" data-type="' + obj1.type + '" data-callback="' + (obj1.callback?obj1.callback:'') + '">' + obj1.name + '</button>';
+    					});
+    					html += '</div>';
+    				}
+    			});
+    			html += '</div>';
+    		}
+    		html += this.getCardPxHtml(data);
+    		html += '</div>';
+    		return html;
+    	},
+    	/**
+    	 * 获取排序部分html
+    	 */
+    	getCardPxHtml: function(data) {
+    		var self = this;
+    		var html = '';
+    		if (data.captionList && data.captionList.length > 0) {
+    			html += '<table class="pxtable" data-callback="' + (data.callback?data.callback:'') + '" border="0" cellpadding="0" cellspacing="0"><tr><th style="width: 50px;">排序</th>';
+    			$.each(data.captionList, function (index, obj) {
+    				if(obj.width){
+    					html += '<th style="width: ' + obj.width + '">';
+    				}else{
+    					html += '<th>';
+    				}
+    				html += '<span>' + obj.name + '</span></th>';
+    			});
+    			html += '</tr>';
+    			$.each(data.list, function (index, obj) {
+					html += "<tr data-value='" + JSON.stringify(obj) + "'><td>" + (index + 1) + "</td>";
+					$.each(obj, function (index1, obj1) {
+						if(obj1.hide){
+							return true;
+						}else if(obj1.isStar){
+							html += '<td class="stars">' + self.getStarHtml(parseFloat(obj1.value)) + '<span class="value">' + obj1.value + '</td>';
+						}else{
+							html += '<td><span>' + obj1.value + '</td>';
+						}
+	    			});
+					html += '</tr>';
+    			});
+    			html += '</table>';
+    			
+    		}		
+    		return html;
+    	},
+    	
+    	 /**
+    	 * 获取星星评价HTML
+    	 */
+    	getStarHtml: function(number){
+    		var html = '';
+    		if(isNaN(number)){
+    			return html;
+    		}
+    		html += '<span>';
+    		for(var i = 0; i < 5; i++){
+    			if(number >= (i + 1)){
+    				html += '<img src="../public/images/full.gif">';
+    			}else if(number >= (i + 0.5)){
+    				html += '<img src="../public/images/half.gif">';
+    			}else{
+    				html += '<img src="../public/images/empty.gif">';
+    			}
+    		}
+    		html += '</span>';
+    		return html;
+    	},
+    	
+    	/**
+    	 * 拼接数据看板card的html字符串
+    	 * 排课结果
+    	 */
+    	initCardPkStr: function(data) {
+    	    var html = '<div class="pkfb list-item single-item">';
+    	    if (data.title) {
+    	        html += '<div class="min-title"><span>' + data.title + '</span>';
+    	        if (data.subTitle) {
+    	            html += '<span class="sub-title">' + data.subTitle + '</span>';
+    	        }
+    	        html += '</div>';
+    	    }
+    	    if(data.buttonList && data.buttonList.length > 0){
+    	    	html += '<div class="button-list bh-clearfix" data-type="04">';
+    	    	$.each(data.buttonList, function(index, obj){
+    	    		if(obj.length > 0){
+    	    			var buttonActive = '';
+    	    			html += '<div class="card-buttons bh-pull-right" style="margin-right: 20px;">';
+    	    			$.each(obj, function(index1, obj1){
+    	    				buttonActive = obj1.active?'active':'';
+    	    				html += '<button class="' + buttonActive + '" type="button" data-value="' + obj1.value + 
+    	    							'" data-type="' + obj1.type + '" data-callback="' + (obj1.callback?obj1.callback:'') + '">' + obj1.name + '</button>';
+    	    			});
+    	    			html += '</div>';
+    	    		}
+    	    	});
+    	    	html += '</div>';
+    	    }
+    	    html += this.getCardPkHtml(data);
+    	    html += '</div>';
+    	    return html;
+    	},
+    	
+    	/**
+    	 * 获取排课结果部分HTML
+    	 */
+    	getCardPkHtml: function(data) {
+    		var html = '';
+    		if (data.weekList && data.weekList.length > 0 && data.unitList && data.unitList.length > 0) {
+    			html += '<div class="pkfb-container">' + 
+    			'<div class="min_title_div bh-clearfix">' + 
+    			'<div class="pk_class_info_div2 pkfb_xq bh-pull-left"></div>';
+    			$.each(data.weekList, function(index, obj){
+    				html += '<div class="pk_class_info_div1 pkfb_xq bh-pull-left">' + 
+    				'<div class="pkfb_class_info_descSpan">' + obj.name + '</div>' +    
+    				'</div>';
+    			});
+    			html += '</div>';
+    			var bgColor = '';
+    			var krl = 0;
+    			$.each(data.unitList, function(index, obj){
+    				html += '<div class="min_tr_div bh-clearfix">' + 
+    				'<div class="pk_class_info_div3 pkfb_xq bh-pull-left">' +
+    				'<div class="pkfb_class_info_descSpan">' + obj.name + '</div>' +
+    				'</div>';
+    				$.each(data.result[index], function(index1, obj1){
+    					krl = parseInt(obj1.krl);
+    					if(krl < 5000){
+    						bgColor = 'pkfb_3';
+    					}else if(krl < 10000){
+    						bgColor = 'pkfb_4';
+    					}else if(krl < 13000){
+    						bgColor = 'pkfb_2';
+    					}else{
+    						bgColor = 'pkfb_1';
+    					}
+    					html += '<div class="pk_class_info_div4 bh-pull-left ' + bgColor + '">' +
+    					'<div class="pkfb_class_info_data">排课:' + obj1.jxbNum + '</div>' +
+    					'<div class="pkfb_class_info_data">课容量:' + obj1.krl + '</div>' +
+    					'</div>';
+    				});
+    				html += '</div>';
+    			});
+    			html += '</div>';
+    		}
+    		return html;
+    	},
+    	
+    	/**
+         * 获取uuid
+         * @returns {string}
+         */
+        getUuid: function() {
+            var s = [];
+            var hexDigits = "0123456789abcdef";
+            for (var i = 0; i < 36; i++) {
+                s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+            }
+            s[14] = "4";
+            s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);
+            s[8] = s[13] = s[18] = s[23] = "";
+            return s.join("");
+        }
+    	
+    });
+})(jQuery);
+

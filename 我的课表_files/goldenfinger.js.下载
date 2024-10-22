@@ -1,0 +1,183 @@
+(function(){
+	//定义长按键盘的哪个按键，113对应 F2 按键
+	var KEY = "F2";
+	var start = 0;
+	var time = 0;
+	var intervalId = null;
+	document.addEventListener("keydown", function(eve){
+		if(eve.key === KEY && start == 0){
+			start = new Date().getTime();
+			intervalId = setInterval(function(){
+				time = new Date().getTime() - start;
+				if(time >= 500){
+					clearInterval(intervalId);
+					$.ajax({
+						url: WIS_CONFIG.ROOT_PATH + '/sys/jwcommon/goldenFinger/listGoldenFinger/' + WIS_CONFIG.APPNAME + '.do',
+						async: true,
+					}).done(function (res) {
+						if(res.code == "0" && res.datas.length == 0){
+							$("#goldenfinger-window").jqxWindow("destroy");
+							console.log("获取技能背包功能列表失败！");
+							return;
+						}
+						ToolManager.clear();
+						$.each(res.datas,function(index,item){
+							var lifeCycleFunc = GoldenFingerPlugins.get(item.id);
+							ToolManager.push({
+								group: item.groupName,
+								func:function(dom){
+									lifeCycleFunc.init(dom,item);
+									dom.off("click").on("click", function(e){
+										lifeCycleFunc.onClick(e);
+									});
+								}
+							});
+						});
+						ToolManager.showAuthPage(function(){
+							goldenFinger.init();
+						});
+					});
+
+				}
+			}, 100);
+		}
+	});
+	document.addEventListener("keyup", function(eve){
+		if(eve.key === KEY){
+			time = 0;
+			start = 0;
+			clearInterval(intervalId);
+		}
+	});
+
+	//定义一个实施工具的管理数组
+	if(!window.ToolManager){
+		var Tool = function(){
+			this.datas = [];
+		}
+		Tool.prototype = {
+			push: function(obj){
+				this.datas.unshift(obj);
+			},
+			clear:function(){
+				this.datas = [];
+			},
+			showAuthPage: function(successCallback){
+				successCallback();
+			},
+			loadCompiledPage: function(pageName){
+				var html;
+				$.ajax({
+					url: WIS_CONFIG.PATH + "/sys/jwcommon/*default/public/script/goldenfinger/"+pageName+".html",
+					dataType: 'html',
+					async: false,
+					cache: false
+				}).done(function (res) {
+					html = res;
+				});
+				return Hogan.compile(html);
+			}
+		}
+		window.ToolManager = new Tool();
+	}
+
+	//金手指
+	var goldenFinger = {
+		init: function(){
+			var self = this;
+			var $window = $("#goldenfinger-window");
+			if($window.length > 0){
+				$window.jqxWindow("destroy");
+			}
+			$("#jsz-zwd").remove();
+			var uls = "<ul><li>全部</li>";
+			var divs = "<div style='text-align: center;font-size: 12px;'></div>";
+			var tmpArr = [];
+
+			$.each(ToolManager.datas, function(i, obj){
+				if(tmpArr.indexOf(obj.group) == -1){
+					uls += "<li>" + obj.group + "</li>";
+					divs += "<div style='text-align: center;font-size: 12px;'></div>";
+					tmpArr.push(obj.group);
+				}
+			});
+			uls += "</ul>";
+			var page = ToolManager.loadCompiledPage("goldenfinger");
+			$("body").append(page.render({path: WIS_CONFIG.PATH}));
+			$("#golden-finger-tabs").html(uls + divs);
+			$window = $("#goldenfinger-window");
+			$window.jqxWindow({
+                position: {x: $(window).width()-230, y: 0},
+                resizable: true,
+                width: 230,
+                height: window.innerHeight,
+				zIndex: 99999,
+				maxHeight: 2000,
+				title: "<a href='javascript:void(0);' style='cursor:pointer;' data-action='查看技能背包说明' title='点击可查看技能背包说明'>技能背包</a>",
+            });
+			var menuYloc = $window.offset().top;
+			$(window).scroll(function () {
+	            var offsetTop = menuYloc + $(window).scrollTop() + "px";
+	            $window.animate({ top: offsetTop }, { duration: 600, queue: false });
+	        });
+
+			$("#golden-finger-tabs").jqxTabs();
+			$("#golden-finger-tabs").on("selected", function(event){
+				self.initContent(event.args.item);
+			});
+			self.initContent(0);
+			$("#golden-finger-tabs").find(".jqx-tabs-arrow-left").removeClass("jqx-tabs-arrow-left")
+				.addClass("iconfont icon-keyboardarrowleft").parent().css({right: "0px", left: "-16px", top: "2px", cursor: "pointer"});
+			$("#golden-finger-tabs").find(".jqx-tabs-arrow-right").removeClass("jqx-tabs-arrow-right")
+				.addClass("iconfont icon-keyboardarrowright").parent().css({right: "-5px", top: "2px", cursor: "pointer"});
+			$($window.find(".jqx-window-header").children()[0]).css({"margin-top": "-5px", "margin-right": "35%", "font-size": "16px", "font-weight": "600", "float": "right"});
+			$window.find(".jqx-window-header").prepend("<span><img style='margin-top:-12px;width:25px;' src='"+WIS_EMAP_SERV.getContextPath() + '/sys/jwcommon/public/images/u288.png'+"'></span>");
+			$window.on("close", function () {
+				$window.jqxWindow("destroy");
+			});
+			return $("#golden-finger-content");
+		},
+
+		initContent: function(item){
+			var self = this;
+			var content = $("#golden-finger-content");
+			content.empty();
+			var group = $("#golden-finger-tabs").jqxTabs('getTitleAt', item);
+			if(group == "全部"){
+				var datas = ToolManager.datas;
+				for(var i = 0;i < datas.length;i++){
+					if($.type(datas[i].func) === "function"){
+						var id = BH_UTILS.NewGuid();
+						content.prepend("<div style='height: 75px;width: 66px;display:inline-block;margin-left:16px;cursor: pointer;border-radius: 5px;" +
+							"color:#2D8CF0;border-color:#2D8CF0;border-width: 1px;border-style: groove;margin-bottom: 16px;' id='"+id+"'></div>");
+						datas[i].func($("#" + id));
+						$("#" + id).on("click", function(){
+							var btnName = $($(this).find(".goldenfinger-btn").children()[0]).html();
+							var obj = {
+								GNMC: btnName,
+								CZLX: "点击按钮"
+							};
+							//$.post(WIS_CONFIG.PATH + '/sys/jwcommon/goldenfinger/gflog.do', {param: JSON.stringify(obj)});
+						});
+					}else{
+						console.error("实施工具类，参数错误！");
+					}
+				}
+			}else{
+				for(var i = 0;i < ToolManager.datas.length;i++){
+					if($.type(ToolManager.datas[i].func) === "function"){
+						if(ToolManager.datas[i].group == group){
+							var id = BH_UTILS.NewGuid();
+							content.prepend("<div style='height: 75px;width: 66px;display:inline-block;margin-left:16px;cursor: pointer;border-radius: 5px;" +
+								"color:#2D8CF0;border-color:#2D8CF0;border-width: 1px;border-style: groove;margin-bottom: 16px;' id='"+id+"'></div>");
+							ToolManager.datas[i].func($("#" + id));
+
+						}
+					}else{
+						console.error("实施工具类，参数错误！");
+					}
+				}
+			}
+		}
+	};
+})();

@@ -1,0 +1,22 @@
+define(function(require) {
+	var utils = require('utils');
+
+	var bs = {
+		api : {
+			// 报表权限写入Url
+			bbqxxrUrl : "modules/xskcb/bbqxxr.do"
+		},
+
+		addFRreport : function(param,printUrl) {
+			return utils.fetch({
+				url : WIS_EMAP_SERV.getAbsPath(printUrl),
+				data : param,
+				parser : function(res) {
+
+				}
+			});
+		}
+	};
+
+	return bs;
+});

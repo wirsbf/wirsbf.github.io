@@ -1,0 +1,99 @@
+define(function(require, exports, module) {
+
+  var utils = require('utils');
+  var bs = require('./printkbBS');
+  var self = null;
+  var pub_param = '';
+  var jc = '';
+  
+  var viewConfig = {
+	   initialize: function(param0,param1) {
+		  pub_param = param0;
+		  jc = param1;
+	      var self = this;
+	      self.initTab();
+	      //self.printForm();
+	      self.eventMap = {
+	    };
+    },
+    initTab : function(){
+    	self = this;
+    	var indexView = utils.loadCompiledPage('printkbIndexPage', require);
+		var options = {
+			content:indexView.render(),
+			ready : function() {
+				self.initForm();
+			}
+		};
+		$.bhPaperPileDialog.show(options);
+    },
+    initForm : function(){
+    	var array = [];
+		var params = {};
+    	/**  报表访问权限 **/
+    	var param = '';
+    	var cpt = '';
+    	var printUrl = '';
+    	if(pub_param.isStudent){ 
+			//学生
+    		param = {
+				TYPE : "WDKB_XSKB"
+			};
+    		printUrl = 'modules/xskcb/bbqxxr.do';
+    		cpt = 'wdkb/timeTableForStu'+jc+'.cpt';
+    	}else{
+    		//老师
+    		param = {
+    			TYPE : "WDKB_LSKB"    			
+    		};
+    		printUrl = 'modules/jshkcb/bbqxxr.do';
+    		cpt = 'wdkb/timeTableForTea'+jc+'.cpt';
+    	}
+	    bs.addFRreport(param,printUrl).done(function(res){
+	       if(res.code==0&&res.datas.bbqxxr.extParams.code==1){
+				var queryId =res.datas.bbqxxr.extParams.msg;
+				params.reportlet = cpt;
+				params.QUERYID = queryId;
+				params.XNXQDM =pub_param.xnxqdm;
+				params.JSH =userId;
+				params.XH =userId;
+		    	array.push(params);
+				self.doPrint(array);
+			 }
+		});
+    	
+    },
+    doPrint: function(paramArray){
+		var str = JSON.stringify(paramArray);
+		var url=WIS_EMAP_SERV.getContextPath()+"/sys/frReport2/show.do";
+        var tempForm = document.createElement("form");           
+        tempForm.id ="tempForm";           
+        tempForm.method="post";              
+        tempForm.action=url+"?__bypagesize__=false";      
+        tempForm.target="printForm";           
+        var hideInput = document.createElement("input");           
+        hideInput.type="hidden";           
+        hideInput.name="reportlets";  
+        hideInput.value= str;         
+        tempForm.appendChild(hideInput);
+        if (tempForm.attachEvent) {  // IE 
+                tempForm.attachEvent("onsubmit",function(){ window.open('about:blank','blank'); });  
+        } else if (tempForm.addEventListener) {  // DOM Level 2 standard  
+                tempForm.addEventListener("onsubmit",function(){ window.open('about:blank','blank'); });  
+        }              
+        document.body.appendChild(tempForm);   
+        if (document.createEvent) { // DOM Level 2 standard  
+               evt = document.createEvent("MouseEvents");  
+               evt.initMouseEvent("submit", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);  
+               tempForm.dispatchEvent(evt);  
+        } else if (tempForm.fireEvent) { // IE  
+               tempForm.fireEvent('onsubmit');  
+        } 
+        tempForm.submit(); 
+        document.body.removeChild(tempForm);
+
+	}
+  };
+
+  return viewConfig;
+});

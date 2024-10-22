@@ -1,0 +1,771 @@
+(function(){
+	//初始化插件
+	if(!window.GoldenFingerPlugins){
+		var GoldenFingerTool = function(){
+			this.plugins = {};
+			//设置默认方法
+			this.plugins['default'] = {
+				init:function(dom,item){
+					try{
+						this.doInit(dom,item);
+					}catch (e) {
+						dom.remove();
+						console.log(item,e);
+					}
+				},
+				doInit:function (dom,item) {
+					dom.append(item.buttonHtml);
+				},
+				onClick:function (e) {
+					var self = this;
+					var $target = $(e.currentTarget).children('.goldenfinger-btn');
+					var goldenfingerId = $target.attr('goldenfinger-id');
+					var url = WIS_CONFIG.ROOT_PATH + '/sys/jwcommon/goldenFinger/executeGoldenFinger/' + WIS_CONFIG.APPNAME + '/' + goldenfingerId + '.do';
+					$.post(url, {app: WIS_CONFIG.APPNAME}, function(res){
+						if(res.code != 0){
+							$.bhTip({
+								state:'danger',
+								content:'网络异常!'
+							});
+							return;
+						}
+						if(res.datas.code == 1){
+							self.successCallBack(res);
+						}else{
+							$.bhTip({state:'warning',content:res.datas.message});
+						}
+					});
+				},
+				successCallBack:function (res) {
+					$.bhTip({
+						state:'success',
+						content:res.datas.message
+					});
+				}
+			};
+		};
+		GoldenFingerTool.prototype = {
+			register: function(name,func){
+				var self = this;
+				if(!func){
+					func = self.plugins['default'];
+				}
+				if(!func.init){
+					func.init = self.plugins['default'].init;
+				}
+				if(!func.doInit){
+					func.doInit = self.plugins['default'].doInit;
+				}
+				if(!func.onClick){
+					func.onClick = self.plugins['default']['onClick'];
+				}
+				if(!func.successCallBack){
+					func.successCallBack = self.plugins['default']['successCallBack'];
+				}
+				this.plugins[name] = func;
+			},
+			get:function (name) {
+				var func = this.plugins[name];
+				if(!func){
+					func = this.plugins['default'];
+				}
+				return func;
+			}
+		}
+		window.GoldenFingerPlugins = new GoldenFingerTool();
+	}
+	//显示表格信息
+	GoldenFingerPlugins.register('showGridInfo',{
+		/**
+		 * 展示表格信息
+		 * */
+		onClick:function(){
+			$('[emap-role="datatable"]').each(function() {
+				var jobj = $(this);
+				var emap = jobj.attr('emap');
+				if (!emap) {
+					$.bhTip({
+						content: '此页面不存在emap表格!',
+						state: 'warning'
+					});
+				}
+				var emapInfo = JSON.parse(emap);
+				jobj.addClass('zet_grid_selected');
+
+				var jobjId = 'toolTip-' + jobj.attr('id');
+				var pageUrl = emapInfo["emap-pagePath"].replace(".do", "");
+				//如果第一个位置上没有 / 则补上
+				if(pageUrl.indexOf("/") != 0){
+					pageUrl = "/" + pageUrl;
+				}
+				if (pageUrl.lastIndexOf("/") != pageUrl.length-1){
+					pageUrl = pageUrl + "/";
+				}
+				var action = emapInfo['emap-action'];
+				if(action.indexOf("/") > -1){
+					pageUrl = pageUrl + "/" + action + ".do";
+				}else{
+					pageUrl = pageUrl + action + ".do";
+				}
+				var content = '<div id="' + jobjId + '"> EPG地址：' + emapInfo['emap-pagePath'] + '<br>动作名：' + emapInfo['emap-action']+ '<br>';
+				content += '查询地址：' + pageUrl + '<br>模型名：' + emapInfo['emap-model-name'] + ' </div>';
+				var btnContent= '<div style="margin:4px 0;"><input role-action="zet_查看原始SQL" role-id="' + jobj.attr('id') + '" role-emapaction="' + emapInfo['emap-action'] + '" role-url="' + pageUrl + '" value="查看原始SQL" type="button" class="bh-btn bh-btn-danger"/></div>';
+				jobj.jqxTooltip({
+					content: content + btnContent,
+					position: 'top',
+					name: 'movieTooltip',
+					autoHide: true,
+					closeOnClick: true
+				});
+				$('[role-action="zet_查看原始SQL"]').off('click').on('click',function (e) {
+					goldenFingerTools.showGridSql(e);
+				});
+				/**
+				 * 弹出提示对话框
+				 */
+				function ggf_alert(content, title, okFn) {
+					if (arguments.length === 2 && typeof title === 'function') {
+						okFn = title;
+						title = undefined;
+					}
+
+					BH_UTILS.bhDialogWarning({
+						title: title || BH_UTILS.i18n('text.prompt|提示'),
+						content: content,
+						buttons: [{
+							text: BH_UTILS.i18n('text.gotit|知道了'),
+							callback: function() {
+								if (typeof okFn === 'function') {
+									okFn();
+								}
+							}
+						}]
+					});
+				};
+				$('#' + jobjId).click(function(e){
+					ggf_alert(content, "表格模型信息");
+				});
+			});
+		},
+		showGridSql:function(e){
+			var taget = $(e.currentTarget);
+			var url = taget.attr('role-url');
+			var id = taget.attr('role-id');
+			var emapaction = taget.attr('role-emapaction');
+
+			var params = {};
+			try {
+				var obj = $('#' + id).emapdatatable('getCurrentQueryParams');
+				for (var p in obj) {
+					if (obj.hasOwnProperty(p)) {
+						params[p] = obj[p];
+					}
+				}
+			} catch (e) {
+				console.log(r);
+			}
+			params['WID'] = '__query_s_q_l,' + $.cookie(_cookie_name);
+			params['pageSize'] = 1
+			params['pageNumber'] = 1;
+
+			$.post(WIS_EMAP_SERV.getAbsPath(url), params, function(r) {
+				var html = '<div style="padding:8px;background:#f1f1f1;">';
+				html += '	<div id="zet_orisqlModal" style="white-space:pre-line;margin-bottom:4px;"></div>';
+				html += '	<div id="zet_sub1Div" style="background:#f3e3e3;padding:4px;font-weight:bold;margin-bottom:4px;"></div>';
+				html += '	<div id="zet_sub2Div" style="background:#f3e3e3;padding:4px;font-weight:bold;"></div>';
+				html += '	</div>';
+				zeroModal.show({
+					title: '查看原始SQL',
+					content: html,
+					width: '85%',
+					height: '85%',
+					cancel: true,
+					overlayClose: true
+				});
+				try {
+					var obj = JSON.parse(r.datas[emapaction].extParams.msg);
+					$('#zet_orisqlModal').html(obj.script || '');
+					$('#zet_sub1Div').html('sub1:' + (obj.sub1 || ''));
+					$('#zet_sub2Div').html('sub2:' + (obj.sub2 || ''));
+				} catch (e) {
+					$('#zet_orisqlModal').html('无数据显示');
+					$('#zet_sub1Div').html('无数据显示');
+					$('#zet_sub2Div').html('无数据显示');
+				}
+			});
+		},
+
+	});
+	//字典管理
+	GoldenFingerPlugins.register('dicManageGoldenFingerPlugin',{
+		/**
+		 * 触发点击事件
+		 * */
+		onClick:function (e) {
+			this.showDicPop();
+		},
+		/**
+		 * 显示查看字典弹窗
+		 */
+		showDicPop:function() {
+			var self = this;
+			if($('[role="zet_ckzd"]').length > 0){
+				$('[role="zet_ckzd"]').remove();
+				return;
+			}
+
+			$('[data-url]').each(function() {
+				var jobj = $(this);
+				var tagClass = 'zet_tag' + (jobj.height() > 0 ? '' : ' zet_tag_noheight');
+				var url = jobj.attr('data-url');
+				var dic = _getDicByUrl(url);
+				if (dic) {
+					jobj.addClass('zet_selected').after('<div role="zet_ckzd" style="position:relative;z-index:1000;"><div role-action="zet_viewdic" data-dic-url="'+url+'" role-dic="' + dic + '" class="' + tagClass + '">i</div></div>');
+					$('[role-dic="' + dic + '"]').jqxTooltip({
+						content: '查看字典',
+						position: 'top'
+					});
+				}
+			});
+
+			$('[role-action="zet_viewdic"]').off('click').on('click',function(e){
+				var url = $(e.currentTarget).data('dic-url');
+				$.post(url,{},function(res) {
+					self.shoDicDetail(e);
+				});
+			});
+
+			//以下均为工具方法
+			function _getDicByUrl(url) {
+				if (!url || url === 'undefined' || url === 'null') {
+					return '';
+				}
+				var urlParams = url.split('/');
+				var dic = urlParams[3];
+				if(urlParams[4]){
+					dic += '@' + urlParams[4];
+				}
+				return dic.replace('.do', '');
+			}
+		},
+		shoDicDetail:function (e) {
+			var self = this;
+			var dic = $(e.currentTarget).attr('role-dic');
+			$.post(WIS_EMAP_SERV.getContextPath() + '/sys/jwcommon/dictionary/viewDicInfo/' + WIS_CONFIG.APPNAME +'/' + dic + '.do',{},function (res) {
+				var info = res.datas;
+				var opt = {
+					title: '查看字典详情（<span class="bh-color-warning">' + (info.dicName || '') + (info.actionName || '')  + '</span>）',
+					content: '<div id="zet_dicInfoModal"></div>',
+					overlayClose: true,
+					cancel: true,
+					width: '900px'
+				};
+				if (info.dicCode) {
+					opt.height = '80%';
+					zeroModal.show(opt);
+
+					var html = '';
+					html += '<table class="bh-table">';
+					html += '	<tr>';
+					html += '		<td class="bh-bg-info-4" style="width:15%">字典标识</td>';
+					html += '		<td style="width:40%;">' + info.dicCode + '</td>';
+					html += '		<td class="bh-bg-info-4" style="width:15%">所属应用</td>';
+					html += '		<td>' + info.appName + '</td>';
+					html += '	</tr>';
+					html += '	<tr>';
+					html += '		<td class="bh-bg-info-4">字典类型</td>';
+					html += '		<td>' + (info.dicType || '')+ '</td>';
+					html += '		<td class="bh-bg-info-4">数据来源</td>';
+					html += '		<td>' + info.actionName + '</td>';
+					html += '	</tr>';
+					html += '	<tr>';
+					html += '		<td class="bh-bg-info-4" title="动态限制条件只在下拉中生效，翻译时不生效！">动态限制条件</td>';
+					html += '		<td>' + (info.selectFilter||'未设置' )+ '</td>';
+					html += '		<td class="bh-bg-info-4">固定限制条件</td>';
+					html += '		<td>' + (info.fixedFilter || '未设置') + '</td>';
+					html += '	</tr>';
+					html += '	<tr>';
+					html += '		<td class="bh-bg-info-4" >编码字段</td>';
+					html += '		<td>' + (info.keyColumn||'未设置' )+ '</td>';
+					html += '		<td class="bh-bg-info-4">显示字段</td>';
+					html += '		<td>' + (info.valueColumn || '未设置') + '</td>';
+					html += '	</tr>';
+					html += '	<tr>';
+					html += '		<td class="bh-bg-info-4" >排序字段</td>';
+					html += '		<td>' + (info.orderColumn||'未设置' )+ '</td>';
+					html += '		<td class="bh-bg-info-4">类别字段</td>';
+					html += '		<td>' + (info.typeColumn || '未设置') + '</td>';
+					html += '	</tr>';
+					html += '</table>';
+					html += '<div id="zet_dicContentDiv" style="margin-top:8px;display:none;">';
+					html += '	<div style="margin-left:-4px;">';
+					html += '		<a href="javascript:void(0)" role-appName="' + info.appName + '"  role-dic="' + info.dicCode + '" role-action="zet_refreshDic" class="bh-btn bh-btn-primary bh-btn-small">刷新缓存</a>';
+					html += '	</div>';
+					html += '	<div id="zet_dicContentGrid" style="margin-top:6px;"></div>';
+					html += '</div>';
+					$('#zet_dicInfoModal').html(html);
+					if (info.dicCode) {
+						$('[role-action="zet_refreshDic"]').off('click').on('click',function (e) {
+							var $target = $(e.currentTarget);
+							$.ajax({
+								url: WIS_EMAP_SERV.getContextPath() + "/sys/emapcomponent/clearDicCache.do?app=" + $target.attr('role-appName') + "&dic=" + $target.attr('role-dic') + "",
+								type: 'post',
+								dataType: 'json',
+								async: false,
+								success: function(data) {
+									$('.zeromodal-close').trigger('click');
+									$.bhTip({
+										content: "操作成功",
+										state: 'success'
+									});
+									self.shoDicDetail(e);
+								}
+							});
+						})
+						$('#zet_dicContentDiv').show();
+						$.each(info.items,function (index,item) {
+							 item.order = (item.order == "null"?'未设置':item.order);
+							 item.inUsed = (item.inUsed == "null"?'未设置':item.inUsed);
+						})
+						var _grid = new zeroJqxGrid({
+							container: '#zet_dicContentGrid',
+							datas: info.items,
+							columns: [{
+								property: 'value',
+								display: '代码'
+							}, {
+								property: 'label',
+								display: '名称'
+							}, {
+								property: 'inUsed',
+								display: '是否使用'
+							}, {
+								property: 'order',
+								display: '排序'
+							}],
+							pageSize: 10,
+							parseLoadDataFunc: function(data) {
+								var newData = {};
+								newData.pageIndex = 1;
+								newData.pageSize = 10;
+								newData.total = info.items.size;
+								newData.datas = info.items;
+								return newData;
+							},
+							loadDataAppendDataFunc: function() {
+								return {
+									dicCode: info.dicCode
+								};
+							}
+						});
+						_grid.render();
+					}
+				}
+			});
+		}
+	});
+	//金智报表
+	GoldenFingerPlugins.register('jzReportGoldenFingerPlugin',{
+		onClick:function(e){
+			window.open(WIS_CONFIG.PATH + "/sys/jzreport/config/index.do?appname="+WIS_CONFIG.APPNAME);
+		}
+	});
+	//录制日志
+	GoldenFingerPlugins.register('logSpyGoldenFingerPlugin',{
+		doInit:function (dom,item) {
+			var self = this;
+			dom.css({"background-color": "rgba(255, 77, 79, 1)", "border-color": "rgba(255, 77, 79, 1)","color":"white"});
+			var startHtml = item.buttonHtml;
+			var endHtml = item.buttonHtml.replace('icon-playcircleoutline','icon-pause').replace(/录制日志/g,'结束录制');
+			//有这个cookie代表已经开始记录日志了
+			if($.cookie("_ELR")){
+				dom.append(endHtml);
+				dom.css({"background-color": "rgba(127, 127, 127, 0.8)", "border-color": "rgba(127, 127, 127, 0.8)"});
+				dom.attr("data-cur", "0");
+			}else{
+				dom.append(startHtml);
+				dom.attr("data-cur", "1");
+			}
+		},
+		onClick:function(e){
+			var self = this;
+			var dom = $(e.currentTarget);
+			var attr = dom.attr("data-cur");
+			if(attr == "1"){
+				this.startRecord().then(function(res){
+					if(res.code == "0"){
+						self.switchEnd(dom);
+					}
+				});
+			}else{
+				this.endRecord();
+				self.switchStart(dom);
+			}
+		},
+		switchStart:function(dom){
+			dom.find('.goldenfinger-icon').find('.iconfont').removeClass('icon-pause');
+			dom.find('.goldenfinger-icon').find('.iconfont').addClass('icon-playcircleoutline');
+			dom.css({"background-color": "rgba(255, 77, 79, 1)", "border-color": "rgb(255,77,79)"});
+			dom.attr("data-cur", "1");
+			dom.find('.goldenfinger-btn span').text('录制日志')
+		},
+		switchEnd:function(dom){
+			dom.find('.goldenfinger-icon').find('.iconfont').removeClass('icon-playcircleoutline');
+			dom.find('.goldenfinger-icon').find('.iconfont').addClass('icon-pause');
+			dom.css({"background-color": "rgba(127, 127, 127, 0.8)", "border-color": "rgba(127, 127, 127, 0.8)"});
+			dom.attr("data-cur", "0");
+			dom.find('.goldenfinger-btn span').text('结束录制')
+		},
+		//开始记录日志
+		startRecord: function(){
+			var self = this;
+			var defer = $.Deferred();
+			var url = WIS_CONFIG.PATH + "/sys/logview/log/setRecordingConfig.do";
+			var u = userId;
+			$.ajax({
+				url: url,
+				type: 'post',
+				dataType: 'text',
+				data: {config: "user:" + u},
+				async: false,
+				error: function(XMLHttpRequest, textStatus, errorThrown) {
+					if(XMLHttpRequest.status == 403){
+						$.bhTip({
+							content: "需要先在应用【logview】用管理员设置允许该用户截取日志",
+							state: 'danger'
+						});
+					}
+				},
+				success: function(data) {
+					$.post(WIS_CONFIG.PATH + "/sys/logview/record/start.do", null, function(res){
+						defer.resolve(res);
+						if(res.code == "0"){
+							//设置日志记录的过期时间的cookie，防止nginx时间和客户端时间不一致，导致日志还未开始记录就结束了
+							if(!$.cookie("_ELR") && res.datas && res.datas.start){
+								var ck = res.datas.start.replace("_ELR=", "");
+								var millisecond = new Date().getTime();
+								var expiresTime = new Date(millisecond + 60 * 1000 * 10);
+								$.cookie("_ELR", ck, {expires: expiresTime, path: WIS_CONFIG.PATH});
+							}
+							$.bhTip({
+								content : "开始记录日志...",
+								state : 'success'
+							});
+						}else{
+							$.bhTip({
+								content: res.msg,
+								state: 'danger'
+							});
+						}
+					});
+				}
+			});
+			return defer;
+		},
+		//结束日志记录
+		endRecord: function(){
+			$.post(WIS_CONFIG.PATH + "/sys/logview/record/stop.do", null, function(res){
+				if(res.code == "0"){
+					if(res.datas.stop == "1"){
+						var url = WIS_CONFIG.PATH + "/sys/logview/record/download.do";
+						var exportForm = $('<form action="' + url + '" method="post">\
+							<input type="hidden" name="ids" value=""/>\
+							</form>');
+						$(document.body).append(exportForm);
+						exportForm.submit();
+						exportForm.remove();
+					}else{
+						$.bhTip({
+							content : "没有截取到可供下载的日志",
+							state : 'danger'
+						});
+					}
+				}else{
+					$.bhTip({
+						content : res.msg,
+						state : 'danger'
+					});
+				}
+			});
+
+		}
+	});
+	//日志sql构建
+	GoldenFingerPlugins.register('logSqlBuilderGoldenFingerPlugin',{
+		onClick:function() {
+			this.initPage();
+			this.bindEvent();
+		},
+		bindEvent:function(){
+			$('[data-action="sql_一键转换"]').on('click',function(){
+				if (!$(".tk1-form").emapValidate("validate")) {
+					return false;
+				}
+				var tk1 = $('.tk1-form').emapForm('getValue');
+				var doc = parseXML(tk1.XML);
+				var elList = $(doc).find("log[fileName='DbServiceImpl.java'],script,log[fileName='CustCommonDaoImpl.java']");
+				var sqlList = [];
+				$.each(elList, function(i, obj){
+					var localName = obj.localName;
+					if(localName == "script"){
+						var sql = $(obj).text();
+						var nextNode = $(obj).next();
+						var pArr = $(nextNode).find("parameter");
+						$.each(pArr, function(i, pa){
+							sql = sql.replace("?", "'" + $(pa).text() + "'");
+						});
+						sqlList.push(sql);
+					}else if(localName == "log"){
+						var msg = $(obj).attr("message");
+						if(msg.startsWith("[sql]")){
+							var sql = msg.replace("[sql]", "");
+							var nextNode = $(obj).next();
+							var p = nextNode.attr("message").replace("[params]", "");
+							if(p){
+								var arr = p.split(",");
+								$.each(arr, function(i, pa){
+									sql = sql.replace("?", "'" + pa + "'");
+								});
+							}
+							sqlList.push(sql);
+						}
+					}
+
+				});
+				var sql = "";
+				$.each(sqlList, function(i, sql1){
+					sql += (i + 1) + "、" + sql1.trim() + ";\r\n";
+					sql += "\r\n";
+					//sql += sqlFormatter.format(sql1);
+				});
+				$('.tk2-form').emapForm("setValue", {XML: sql});
+			});
+
+			$('[data-action="sql_关闭"]').on('click',function(){
+				$.bhPaperPileDialog.hide();
+			});
+
+			$('[data-action="sql_一键复制"]').on('click',function(){
+				var tk2 = $('.tk2-form').emapForm('getValue');
+				let textarea=document.createElement('textarea');
+				textarea.value=tk2.XML;
+				document.body.appendChild(textarea);
+				textarea.select();
+				var isCopy=document.execCommand('copy');
+				document.body.removeChild(textarea);
+				if(isCopy){
+					$.bhTip({
+						content : "复制成功！",
+						state : 'success'
+					});
+				}else{
+					$.bhTip({
+						content : "复制失败！",
+						state : 'danger'
+					});
+				}
+			});
+
+			function parseXML(xmlStr) {
+				var parseXML1 = "";
+
+				if(typeof DOMParser == "function") {
+					parseXML1 = function(xmlStr) {
+
+						return (new DOMParser()).parseFromString(xmlStr, "text/xml");
+					}
+				} else if(typeof window.ActiveXObject != 'undefined' && new      Window.ActiveXObject('Microsoft.XMLDOM')) {
+					parseXML1 = function(xmlStr) {
+						var xmlDOC = new Window.ActiveXObject("Microsoft.XMLDOM");
+						xmlDOC.async = 'false';
+						xmlDOC.loadXML(xmlStr);
+						return xmlDOC;
+					};
+				} else {
+					throw new Error("No XML parser found");
+				}
+				return parseXML1(xmlStr);
+			}
+		},
+		initPage:function(){
+			var html = "";
+			html += '<article bh-layout-role="single">';
+			html += '<h2 class="wuyuheng" style="height:0px"></h2>';
+			html += '<div style="position:relative;"><img src="'+WIS_EMAP_SERV.getContextPath() + '/sys/jwcommon/public/images/sql.png"/>';
+			html += '<div style= "display: inline-block;position: absolute;bottom: 0px;"><font style="font-size: 34px;font-weight: bolder;">生成器</font></div>';
+			html += '<div style= "display: inline-block;position: absolute;bottom: 0px;width: 300px;right: 100px;"><font style="font-size: 12px; color: red;" class="shuoming"></font></div>';
+			html += '</div>';
+			html += '<section>';
+			html += '<div class="tk1-form"></div>';
+			html += '<footer style="padding-left: 16px;text-align:center;">';
+			html += '<a href="javascript:void(0);" class="bh-btn bh-btn-primary waves-effect" data-action="sql_一键转换">一键转换</a> ';
+			html += '<a href="javascript:void(0);" class="bh-btn bh-btn-primary waves-effect" data-action="sql_关闭">关闭</a> ';
+			html += '</footer>';
+			html += '<div class="tk2-form"></div>';
+			html += '<footer style="padding-left: 16px;text-align:center;">';
+			html += '<a href="javascript:void(0);" class="bh-btn bh-btn-primary waves-effect" data-action="sql_一键复制">复制</a> ';
+			html += '<span style="position: absolute;right: 25%;cursor: pointer;" data-action="sql_一键复制"></span>';
+			html += '</footer>';
+			html += '</section>';
+			html += '</article>';
+
+			//弹出一个纸质弹框
+			$.bhPaperPileDialog.show({
+				content : html,
+				render : function() {
+					//处理纸质弹框高度
+					$('.wuyuheng').next().css('margin-top','20px');
+					$('.shuoming').html('说明：把下载下来的日志解压后，把其中的内容拷贝到sql生成器里面，然后点一键转换按钮，即可得到日志中截到的所有sql及对应的条件');
+					var datamodel = [];
+					datamodel.push({
+						caption : '',
+						dataType: "String",
+						xtype: "textarea",
+						name:"XML",
+						required : true,
+					});
+					var datamodel1 = [];
+					datamodel1.push({
+						caption : '',
+						dataType: "String",
+						xtype: "textarea",
+						name: "XML",
+						required : false,
+					});
+					WIS_EMAP_SERV.convertModel(datamodel, 'form');
+					$('.tk1-form').emapForm({
+						data : datamodel,
+						model : 'v',
+						readonly : false
+					});
+					$('.tk1-form').find("[name='XML']").parent().css({"max-height": "350px", "overflow-y": "scroll"});
+					$('.tk1-form').find("[name='XML']").parent().niceScroll();
+					$('.tk2-form').emapForm({
+						data : datamodel1,
+						model : 'v',
+						readonly : false
+					});
+
+				},
+				close : function() {
+				}
+			});
+		}
+	});
+	//授权
+	GoldenFingerPlugins.register('funcAuthGoldenFingerPlugin',{
+		onClick:function(e){
+			window.open(WIS_CONFIG.PATH + "/sys/funauthapp/qxgl.do?appId="+WIS_CONFIG.APPID+"&appName="+WIS_CONFIG.APPNAME+"&needFlow=true");
+		}
+	});
+	//版本信息
+	GoldenFingerPlugins.register('appVersionGoldenFingerPlugin',{
+		/**
+		 * 触发点击事件
+		 * */
+		successCallBack:function (res) {
+			this.showVersionInfo(res);
+		},
+		/**
+		 * 显示查看字典弹窗
+		 */
+		showVersionInfo:function(res) {
+			var appInfo = res.datas.extInfo;
+			BH_UTILS.bhWindow("<div id='goldenfinger-appversion'></div>", "版本信息",
+				[ {
+					text:'复制版本号',
+					className:'bh-btn-primary',
+					callback:function(){
+						var content = appInfo.APPNAME + ':' + appInfo.VERSION;
+						$.each(appInfo.dependences,function(index,item){
+							content += ","+item.name + ":" + item.cversion;
+						});
+						var ele = document.createElement("input"); //创建一个input标签
+						ele.setAttribute("value", content); // 设置改input的value值
+						document.body.appendChild(ele); // 将input添加到body
+						ele.select();  // 获取input的文本内容
+						document.execCommand("copy"); // 执行copy指令
+						document.body.removeChild(ele); // 删除input标签
+						$.bhTip({
+							content: '版本信息已复制到剪切板！',
+							state: 'success'
+						});
+						return false;
+					}
+					},
+					{
+						text:'关闭',
+						className:'bh-btn-default',
+						callback:function(){
+							//需要定义一个空函数，以关闭弹窗
+						}
+					}
+				],
+				{
+					height: 400,
+					width: 700
+				}
+			);
+			var appInfo = res.datas.extInfo;
+			var html = '';
+			html += '<table class="bh-table">';
+			html += '	<tr>';
+			html += '		<td class="bh-bg-info-4" style="width:15%">应用简称</td>';
+			html += '		<td style="width:40%;">' + appInfo.APPNAME + '</td>';
+			html += '		<td class="bh-bg-info-4" style="width:15%">版本号</td>';
+			html += '		<td>' + appInfo.VERSION  + '</td>';
+			html += '	</tr>';
+			html += '	<tr>';
+			html += '		<td class="bh-bg-info-4" style="width:15%">是否存在定制</td>';
+			html += '		<td style="width:40%;">' + (appInfo.customExist?'是':'否') + '</td>';
+			html += '		<td class="bh-bg-info-4" style="width:15%">上次更新时间</td>';
+			html += '		<td>' + (appInfo.lastUpdateTime)  + '</td>';
+			html += '	</tr>';
+			html += '</table>';
+			html += '<div style="padding-top: 10px;padding-bottom: 8px;font-size: 15px;font-weight: 600;">版本依赖信息</div>';
+
+			html += '<table class="bh-table">';
+			html += '	<tr>';
+			html += '		<th class="bh-bg-info-4" style="width:40%">依赖应用</th>';
+			html += '		<th class="bh-bg-info-4" style="width:30%">要求最低版本号</th>';
+			html += '		<th class="bh-bg-info-4" style="width:30%">当前版本号</th>';
+			html += '	</tr>';
+			$.each(appInfo.dependences,function(index,item){
+				var versionSupport = versionValid(item.version,item.cversion);
+				var fontColor = versionSupport?'':'color:red';
+				html += '	<tr>';
+				html += '		<td style="width:40%;">'+ item.name +'</td>';
+				html += '		<td style="width:30%;">'+ item.version + '</td>';
+				html += '		<td style="width:30%; '+fontColor+'">' + item.cversion  + '</td>';
+				html += '	</tr>';
+			});
+			html += '</table>';
+			$('#goldenfinger-appversion').append(html);
+
+			function versionValid(limit,current){
+				if(limit == current){
+					return true;
+				}
+				if(!limit || !current){
+					return false;
+				}
+				limit = limit.replaceAll(/[a-zA-Z]/g,"").replaceAll(/[_]/g,".");
+				current = current.replaceAll(/[a-zA-Z]/g,"").replaceAll(/[_]/g,".");
+
+				currentArr = current.split('.');
+				var valid = true;
+				$.each(limit.split('.'),function(index,item){
+					if(Number(currentArr[index]) != Number(item)){
+						if(Number(currentArr[index]) > Number(item)){
+							valid = true;
+						}else{
+							valid = false;
+						}
+						return false;
+					}
+				});
+				return valid;
+			}
+		}
+	});
+})();

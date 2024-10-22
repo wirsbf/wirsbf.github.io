@@ -1,0 +1,13 @@
+﻿define(function(require, exports, module) {
+	 
+	var config = {
+		/*
+		 	APP标题
+		 */
+		"APP_TITLE": "我的课表"
+
+	};
+
+	return config;
+
+});

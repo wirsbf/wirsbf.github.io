@@ -1,0 +1,465 @@
+define(function(require) {
+var utils = require('utils');
+var _KCJC = [];//缓存课程简称
+var bs = {
+		api: {
+			pageModel: '/modules/jshkcb.do',
+			ZS:0,//学期总周数
+			XQKSRQ:null,//学期开始日期
+			XLXX:null,//校历信息
+			ZCRQ:null,//缓存周次日期信息
+			queryAllCourse: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxbjrlkbkcjsxx.do'),
+			queryCourseDetail: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxbjrlkbkcmx.do'),
+			queryXtcs: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxxtcs.do'),
+			queryXl: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxxl.do'),
+			queryJq: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxjq.do'),
+			queryTk: WIS_EMAP_SERV.getAbsPath('/modules/jshkcb/cxtk.do')
+		},
+		queryXtcs:function(CSDM,ZCSDM){
+			var data = BH_UTILS.doSyncAjax(bs.api.queryXtcs,{CSDM:CSDM,ZCSDM:ZCSDM},'POST');
+			if(data.code == "0" && data.datas.cxxtcs.extParams.code == "1"){
+				 return data.datas.cxxtcs.rows;
+			}else{
+				 $.bhTip({content: "查询系统参数失败",state: 'warning'});
+				 return [];
+			}
+		},
+		getXnxqdm:function(){
+			return {XNXQDM:$('#dqxnxq2').attr('value'),XNXQMC:$('#dqxnxq2').text()};
+		},
+		getMonth:function(date){
+			var month = [];
+			var px = 1;
+			for(var i = 0; i <date.length ; i++){
+				var sfcz = false;//标记该月份是否已经存在
+				for(var j = 0 ; j < month.length ; j++){
+					if(month[j].YFDM == date[i].YFDM){
+						sfcz = true;
+						month[j].YFZS++;
+					}
+				}
+				if(!sfcz){
+					month.push({YFDM:date[i].YFDM,YFZS:1,YFMC:this.getYFMC(date[i].YFDM),PX:px++});
+				}
+			}
+			return month;
+		},
+		getYFMC:function(m){
+			var month = '';
+			switch(m)
+			{
+				case 1:
+				  month = "一月";
+				  break;
+				case 2:
+				  month = "二月";
+				  break;
+				case 3:
+				  month = "三月";
+				  break;
+				case 4:
+				  month = "四月";
+				  break;
+				case 5:
+				  month = "五月";
+				  break;
+				case 6:
+				  month = "六月";
+			      break;
+				case 7:
+				  month = "七月";
+				  break;
+				case 8:
+				  month = "八月";
+				  break;
+				case 9:
+				  month = "九月";
+				  break;
+				case 10:
+				  month = "十月";
+				  break;
+				case 11:
+				  month = "十一月";
+				  break;
+				case 12:
+				  month = "十二月";
+				  break;
+				default:
+				  month = "";
+			}
+			return month;
+		},
+		/**
+		 * 获取表头日期部分
+		 * CLASS: left 每个月第一周使用（如果只有一周使用single）
+		 * 		  right 每个月最后一周使用
+		 * 		  centre 其他周次使用
+		 * */
+		getDate:function(){
+			return this.getXqZcByKsrq();
+		},
+		getAllCourse:function(xnxqdm,jsdm){
+			var courses = [];
+			var data = BH_UTILS.doSyncAjax(bs.api.queryAllCourse,{XNXQDM:xnxqdm,JSDM:jsdm},'POST');
+			if(data.code == "0" && data.datas.cxbjrlkbkcjsxx.extParams.code == "1"){
+				courses = this.formCourseData(data.datas.cxbjrlkbkcjsxx.rows);
+			}else{
+				 $.bhTip({content: "查询课程信息失败",state: 'warning'});
+			}
+			return courses;
+		},
+		/**
+		 * 加工课程信息
+		 * */
+		formCourseData:function(courses){
+			var tempCourse = [];
+			_KCJC = [];//每次执行清空原有数据
+			for(var i = 0 ; i < courses.length ; i++){
+				if(!courses[i].KCM){//课程名为空，课程简称设置为空
+					courses[i].KCJC = '';
+					continue;
+				}
+				var jc = courses[i].KCM.replace(/[\.\。\-\_\,\!\|\~\`\(\)\#\$\%\^\&\*\{\}\:\;\"\L\<\>\?]/g, '').substring(0,1);//默认简称为第一个字
+				if(tempCourse.indexOf(jc)!=-1){//已存在该简称
+					jc = this.calCourseJc(tempCourse,jc);
+				}
+				tempCourse.push(jc);
+				courses[i].KCJC = jc;
+				_KCJC.push({JXBID:courses[i].JXBID,KCH:courses[i].KCH,JC:courses[i].KCJC});//缓存待用
+			}
+			return courses;
+		},
+		/**
+		 * 计算课程简称（递归）
+		 * */
+		calCourseJc:function(tempCourse,jc){
+			if(tempCourse.indexOf(jc) == -1){
+				return jc;
+			}
+			if(jc.length == 1){//还未加数字
+				jc = jc+"1";
+			}else{
+				jc = jc.substring(0, 1) +""+(Number(jc.substr(1))+1);
+			}
+			return this.calCourseJc(tempCourse,jc);
+		},
+		getXl:function(){
+			//查询校历
+			var xnxq = this.getXnxqdm().XNXQDM.split('-');
+			var data = BH_UTILS.doSyncAjax(bs.api.queryXl,{XN:xnxq[0]+'-'+xnxq[1],XQ:xnxq[2]},'POST');
+			if(data.code == "0" && data.datas.cxxl.extParams.code == "1"){
+				var xlxx = data.datas.cxxl.rows;
+				bs.api.ZS = xlxx[0].ZZC;
+				bs.api.XQKSRQ = xlxx[0].XQKSRQ;
+				bs.api.XLXX = xlxx[0];
+			}else{
+				 $.bhTip({content: "查询校历失败",state: 'warning'});
+			}
+		},
+		/**
+		 * 获取课程详情
+		 * */
+		getDetail:function(){
+			var self = this;
+			var xqArr = ['一','二','三','四','五','六','日'];//如果要修改显示星期，修改此数组即可
+			var jcArr = ['1—2','3—4','5—6','7—8','晚'];//如果要修改显示节次，修改此数组即可
+			var zs = bs.api.ZS<20?20:bs.api.ZS;//周次数
+			var detail = [];
+			var style='';
+			for(var i = 0 ; i < xqArr.length ; i++){
+				for(var j = 0 ; j < jcArr.length; j++){
+					style='x83';
+					var xqdm = i+1;
+					var jcdm = j+1;
+					if(jcdm == 1){
+						style = 'x80';
+					}else if(jcdm == 5){
+						style = 'x86';
+					}
+					detail.push({notFirst:j!=0,CLASS:style,XQDM:xqdm,XQMC:xqArr[i],JCDM:jcdm,JCMC:jcArr[j],CELLS:self.getCellArr(xqdm,jcdm,zs)});
+				}
+			}
+			return detail;
+		},
+		/**
+		 * 获取单元格(返回某一行)
+		 * 单元格编码规则   周次+星期+节次序号(1-2为1,3-4为2。。。类推) 
+		 * 			   如 第三周星期四5-6节 对应 343
+		 * @param XQDM 星期代码
+		 * 		  JCMD 节次代码
+		 * 		  ZS   周数
+		 * */
+		getCellArr:function(XQDM,JCDM,ZS){
+			var self = this;
+			var cellArr = [];
+			for(var i = 0 ; i < ZS; i++){
+				cellArr.push({CELLID:''+(i+1)+XQDM+JCDM,CLASS:self.getCellClass(XQDM, JCDM, i+1, ZS),NR:''});
+			}
+			return cellArr;
+		},
+		//获取单元格样式
+		getCellClass:function(xqdm,jcdm,zcdm,zs){
+			if(zcdm == 1 && jcdm == 1){//第一周每天第一节
+				return 'x81';
+			}
+			if(zcdm == zs && jcdm == 1){//最后一周每天第一节
+				return 'x125';
+			}
+			if(zcdm == 1 && jcdm == 5){//第一周每天最后一节
+				return 'x87';
+			}
+			if(zcdm == zs && jcdm == 5){//最后一周每天最后一节
+				return 'x126';
+			}
+			if(xqdm == 1 && jcdm == 1){//星期一第一节
+				return 'x82';
+			}
+			if(jcdm == 5){//每周最后一节
+				return 'x88';
+			}
+			if(jcdm == 1){//每周第第一节
+				return 'x82';
+			}
+			if(zcdm == 1){
+				return 'x84';
+			}
+			if(zcdm == zs){
+				return 'x123';
+			}
+			return 'x85';
+		},
+		/**
+		 * 标记合并单元格(标记节假日、考试、调课等使用)
+		 * @param ZCDM 周次代码
+		 * 		  XQDM 星期代码
+		 * 		  KSJC 开始节次
+		 * 		  JSJC 结束节次
+		 * 		  NR   合并后内容
+		 * */
+		markCells:function(ZCDM,XQDM,KSJC,JSJC,NR){
+			//计算合并的格子数
+			var num = JSJC - KSJC + 1;
+			//根据参数获得选择器
+			$dom = $('td[data-cellid='+ZCDM+XQDM+KSJC+']');
+			$dom.attr('rowspan',num);
+			$dom.addClass('x199');
+			$dom.attr('style','border-right:1px solid windowtext;border-bottom:2px solid windowtext;overflow:hidden;');
+			$dom.text(NR);
+			//移除多余格子
+			for(var i = KSJC+1 ;i <= JSJC ; i++){
+				$('td[data-cellid='+ZCDM+XQDM+i+']').remove();
+			}
+		},
+		/**
+		 * 获取课程明细（异步）
+		 * */
+		getCourseDetail:function(xnxqdm,jsdm){
+			var self = this;
+			BH_UTILS.doAjax(bs.api.queryCourseDetail,{XNXQDM:xnxqdm,JSDM:jsdm}).done(function(data){
+				if(data.code == "0" && data.datas.cxbjrlkbkcmx.extParams.code == "3"){
+					$.bhTip({content: data.datas.cxbjrlkbkcmx.extParams.msg,state: 'warning'});
+					return false;
+				}else if(data.code != "0" || data.datas.cxbjrlkbkcmx.extParams.code != "1"){
+					$.bhTip({content: "查询课程明细失败",state: 'warning'});
+					return false;
+				}
+				var courses = data.datas.cxbjrlkbkcmx.rows;
+				//往table里塞课程
+				for(var i = 0 ; i < courses.length ; i++){
+					self.putValueByRwbj(courses[i].SKZC, courses[i].SKXQ,courses[i].KSJC,courses[i].JSJC,courses[i].KCH,courses[i].JXBID);
+				}
+				//往table里塞其他内容
+				//1.备注信息
+				$('#bznr').html(bs.api.XLXX.XLSM);
+				//2.考试信息
+				//2.1期中考试
+				var ksxx = self.calDateCell(bs.api.XLXX.QZKSSJ,bs.api.XLXX.QZJSSJ,'期中考试');
+				for(var i = 0 ; i < ksxx.length ; i++){
+					self.markCells(ksxx[i].ZC,ksxx[i].XQ,1,5,ksxx[i].NR);
+				}
+				//2.2期末考试
+				ksxx = self.calDateCell(bs.api.XLXX.QMKSSJ,bs.api.XLXX.QMJSSJ,'期末考试');
+				for(var i = 0 ; i < ksxx.length ; i++){
+					self.markCells(ksxx[i].ZC,ksxx[i].XQ,1,5,ksxx[i].NR);
+				}
+				//3.假期信息
+				self.queryJqxx(xnxqdm);
+				
+				//4.调休信息
+				self.queryTxxx(xnxqdm);
+				
+			});
+			
+		},
+		/**
+		 * 按任务班级表填充某单元格
+		 * @param SKZC 上课周次
+		 * 		  SKXQ 上课星期
+		 * 		  KSJC 开始节次
+		 * 		  JSJC 结束节次
+		 * */
+		putValueByRwbj:function(SKZC,SKXQ,KSJC,JSJC,KCH,JXBID){
+			if(!(SKZC&&SKXQ&&KSJC&&JSJC&&KCH&&JXBID)){
+				return;
+			}
+			var skzc = SKZC.split('');
+			for(var i = 0; i < bs.api.ZS ; i++){//根据学期周数计算
+				if(skzc[i] == 1){//该周有课
+					var skjcxx = this.getJcByfw(KSJC,JSJC);
+					if(skjcxx.length > 0 ){
+						skjcxx = skjcxx.split(',');
+						for(var j = 0 ; j <= skjcxx.length ; j++){
+							var $tdElement = $('td[data-cellid='+(i+1)+SKXQ+skjcxx[j]+']');
+							//判断当前单元格是否有值，如果有，则追加
+							var text = $tdElement.text();
+							if(text){
+								text += "/"+this.getCourseSub(JXBID);
+							}else{
+								text = this.getCourseSub(JXBID);
+							}
+							$tdElement.text(text);
+						}
+					}
+				}
+			}		
+		},
+		//获取课程简称
+		getCourseSub:function(JXBID){
+			for(var i = 0 ; i < _KCJC.length ; i++){
+				if(_KCJC[i].JXBID == JXBID){
+					return _KCJC[i].JC;
+				}
+			}
+			return '-';
+		},
+		//根据开始节次和结束节次获取单元格节次下标
+		getJcByfw:function(KSJC,JSJC){
+			var jcfw = [{KSJC:1,JSJC:2,XB:'1'},{KSJC:3,JSJC:4,XB:'2'},{KSJC:5,JSJC:6,XB:'3'},{KSJC:7,JSJC:8,XB:'4'},{KSJC:9,JSJC:10,XB:'5'}];
+			var jcxb = '';
+			var qdxb = -1;//是否已找到起点
+			var zdxb = -1;//是否已找到终点
+			for(var i = 0 ; i < jcfw.length ; i++){
+				if((qdxb == -1) && KSJC>= jcfw[i].KSJC && KSJC <= jcfw[i].JSJC){
+					qdxb = jcfw[i].XB;
+				}
+				if((zdxb == -1) && JSJC >= jcfw[i].KSJC && JSJC <= jcfw[i].JSJC){
+					zdxb = jcfw[i].XB;
+				}
+			}
+			if(qdxb == -1){
+				return '*';
+			}
+			for(var n = qdxb; n<=zdxb; n++){
+				jcxb += n+",";
+			}
+			return jcxb.slice(0, -1);
+		},
+		/**
+		 * 根据学期开始日期计算周次
+		 * */
+		getXqZcByKsrq:function(){
+			//获取开始日期是周几
+			var data = [];
+			var myDate = new Date(Date.parse(bs.api.XQKSRQ));
+			var xq = myDate.getDay() == 0?7:myDate.getDay();//js获取周日为0，转为7方便计算
+			var yf = myDate.getMonth()+1;
+			var ksrq = myDate.getDate()+'/'+yf;
+			var kssj = myDate.getFullYear()+"-"+(myDate.getMonth()+1)+"-"+myDate.getDate();
+			//日期后移到下个周日
+			myDate.setDate(myDate.getDate()+(7-xq));
+			var jsrq = yf == myDate.getMonth()+1?myDate.getDate():myDate.getDate()+'/'+(myDate.getMonth()+1);
+			var jssj = myDate.getFullYear()+"-"+(myDate.getMonth()+1)+"-"+myDate.getDate();
+			//单独处理第一周信息
+			data.push({YFDM:yf,ZCDM:1,ZCMC:1,PX:1,KSRQ:ksrq,JSRQ:jsrq,KSSJ:kssj,JSSJ:jssj,CLASS:'single'});
+			//处理剩余周数
+			for(var i = 1 ; i < bs.api.ZS ; i++){
+				myDate.setDate(myDate.getDate()+1);//日期后移一天，这天必然为周一
+				ksrq = !((yf!=myDate.getMonth()+1)&&myDate.getDate()==1)?myDate.getDate():myDate.getDate()+'/'+(myDate.getMonth()+1);//刷新开始日期(月份发生切换且为1号的时候日期显示带上月份)
+				kssj = myDate.getFullYear()+"-"+(myDate.getMonth()+1)+"-"+myDate.getDate();
+				yf = myDate.getMonth()+1;//刷新月份
+				myDate.setDate(myDate.getDate()+6);//日期后移6天，这天必然为周日
+				jsrq = yf == myDate.getMonth()+1?myDate.getDate():myDate.getDate()+'/'+(myDate.getMonth()+1);
+				jssj =  myDate.getFullYear()+"-"+(myDate.getMonth()+1)+"-"+myDate.getDate();
+				data.push({YFDM:yf,ZCDM:i+1,ZCMC:i+1,PX:i+1,KSRQ:ksrq,JSRQ:jsrq,KSSJ:kssj,JSSJ:jssj,CLASS:'single'});
+			}
+			
+			//小于20周的时候处理为20周留空
+			if(bs.api.ZS < 20){
+				for(var i = 0; i<20-bs.api.ZS;i++){
+					data.push({YFDM:'',ZCDM:'',ZCMC:'',PX:99,KSRQ:'',JSRQ:'',CLASS:'single'});
+				}
+			}
+			bs.api.ZCRQ = data;
+			return data;
+		},
+		/**
+		 * 计算返回两个日期范围之间对应的周次和星期
+		 * */
+		calDateCell:function(kssj,jssj,nr){
+			var data = [];//[{ZC:'',XQ:'',NR:''}]
+			kssj = new Date(Date.parse(kssj+' 00:00:01'));
+			jssj = new Date(Date.parse(jssj+' 00:00:01'));
+			var stopzc = 0;
+			var xhcs = 0;
+			while(kssj<=jssj && xhcs <=365){//xhcs<365防止死循环
+				var lastDate = new Date(Date.parse(bs.api.ZCRQ[bs.api.ZCRQ.length-1].JSSJ+' 00:00:01'));//学期最后日期
+				if(kssj.getTime()>lastDate.getTime()){//如果开始时间比最后日期大，没有往后面比较的必要了
+					return data;
+				}
+				for(var i = stopzc ; i < bs.api.ZCRQ.length; i++){
+					dqzs = i;
+					var tempKssj = new Date(Date.parse(bs.api.ZCRQ[i].KSSJ+' 00:00:01'));
+					var tempJssj = new Date(Date.parse(bs.api.ZCRQ[i].JSSJ+' 00:00:01'));
+					if(kssj.getTime()>=tempKssj.getTime() && kssj.getTime()<=tempJssj.getTime()){
+						data.push({'ZC':bs.api.ZCRQ[i].ZCDM,'XQ':kssj.getDay()==0?7:kssj.getDay(),NR:nr});
+						stopzc = Number(bs.api.ZCRQ[i].ZCDM)-1;
+						kssj.setDate(kssj.getDate()+1);//开始时间后移一天
+						break;//跳出内层循环
+					}
+				}
+				xhcs++;
+			}
+			return data;
+		},
+		/**
+		 * 查询放假信息并塞入表格
+		 * */
+		queryJqxx:function(xnxqdm){
+			var self = this;
+			BH_UTILS.doAjax(bs.api.queryJq,{XNXQDM:xnxqdm}).done(function(data){
+				if(data.code != "0" || data.datas.cxjq.extParams.code != "1"){
+					$.bhTip({content: "查询假期信息失败",state: 'warning'});
+					return false;
+				}
+				var jqs = data.datas.cxjq.rows;
+				for(var j = 0 ; j < jqs.length ; j++){
+					var jqxx = self.calDateCell(jqs[j].KSRQ,jqs[j].JSRQ,jqs[j].JQMC);
+					for(var i = 0 ; i < jqxx.length ; i++){
+						self.markCells(jqxx[i].ZC,jqxx[i].XQ,1,5,jqxx[i].NR);
+					}
+				}
+			});
+		},
+		/**
+		 * 查询调休信息
+		 * */
+		queryTxxx:function(xnxqdm){
+			var self = this;
+			BH_UTILS.doAjax(bs.api.queryTk,{XNXQDM:xnxqdm}).done(function(data){
+				if(data.code != "0" || data.datas.cxtk.extParams.code != "1"){
+					$.bhTip({content: "查询假期信息失败",state: 'warning'});
+					return false;
+				}
+				var txs = data.datas.cxtk.rows;
+				for(var t = 0 ; t < txs.length ; t++){
+					var jqxx = self.calDateCell(txs[t].XSKRQ,txs[t].XSKRQ,'调课');
+					for(var i = 0 ; i < jqxx.length ; i++){
+						self.markCells(jqxx[i].ZC,jqxx[i].XQ,1,5,jqxx[i].NR);
+					}
+				}
+			});
+		}
+  	};
+
+	return bs;
+});

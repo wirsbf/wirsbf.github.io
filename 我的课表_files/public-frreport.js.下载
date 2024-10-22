@@ -1,0 +1,225 @@
+$(function(){
+	Vue.component('public-frreportant', {
+		data: function(){
+			return {
+				reportlist: [],
+				single: false,
+				double: false
+			};
+		},
+		props: ['page'],
+		created: function(){
+			if(!this.page){
+				console.warn('publicFrReport： 缺少必要参数');
+				return false;
+			}
+			this.initData();
+		},
+		mounted: function(e){
+			
+		},
+		methods: {
+			btnClick: function(item){
+				var self= this;
+				var param = {};
+				if(item.GDDZ){
+					param.reportlet = item.GDDZ;
+				}else{
+					param.reportlet = item.PID + '/' + item.ID + '.cpt';
+				}
+				var selectItems = [];
+				var settingItems = [];
+				var hasChoose = false;
+				var hasSetting = false;
+				if(item.CSLX.indexOf('01') > -1 || item.CSLX.indexOf('02') > -1){
+					hasChoose = true;
+				}
+				if(item.CSLX.indexOf('03') > -1){
+					hasSetting = true;
+				}
+				if((hasChoose && !item.GDCS) || (hasSetting && !item.QJCS)){
+					$.bhTip({content: '缺少选择器参数', state: 'warning'});
+					return false;
+				}
+				switch (item.DTCS) {
+				case '01': //列表
+					if(hasChoose){
+						selectItems = $(item.GDCS).emapdatatable("checkedRecords");
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapAdvancedQuery("getValue"));
+					}
+					break;
+				case '02': //条件列表
+					if(hasChoose){
+						selectItems = $(item.GDCS).emapdatatable("checkedRecords");
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapFilterQuery("getValue"));
+					}
+					break;
+				case '03': //表单
+					if(hasChoose){
+						selectItems.push($(item.GDCS).emapform("getValue"));
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapAdvancedQuery("getValue"));
+					}
+					break;
+				case '04': //GRID
+					if(hasChoose){
+						selectItems = $(item.GDCS).emapGrid('getTable').emapdatatable("checkedRecords");
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapAdvancedQuery("getValue"));
+					}
+					break;
+				case '05': //条件GRID
+					if(hasChoose){
+						selectItems = $(item.GDCS).emapGrid('getTable').emapdatatable("checkedRecords");
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapFilterQuery("getValue"));
+					}
+					break;
+				default: //默认列表
+					if(hasChoose){
+						selectItems = $(item.GDCS).emapdatatable("checkedRecords");
+					}
+					if(hasSetting){
+						settingItems = JSON.parse($(item.QJCS).emapAdvancedQuery("getValue"));
+					}
+					break;
+				}
+				if(!hasSetting && item.CSLX.indexOf('01') > -1 && selectItems.length != 1){
+					$.bhTip({content: '请勾选一条数据', state: 'warning'});
+					return false;
+				}
+				if(!hasSetting && item.CSLX.indexOf('02') > -1 && selectItems.length == 0){
+					$.bhTip({content: '请勾选数据', state: 'warning'});
+					return false;
+				}
+				$.ajax({
+					url:window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/modules/bb/cxjwggbbcs.do", 
+					data: {BBWID: item.WID, SFSY: '1'}, 
+					type: 'post', 
+					success:function(resp){
+						var value = '';
+						var canOpenReport = true;
+						$.each(resp.datas.cxjwggbbcs.rows, function(index, obj){
+							value = '';
+							if(obj.CSZ){
+								value = obj.CSZ;
+							}else if(obj.XZQ){
+								value = $(obj.XZQ).attr('data-dm');
+							}else{
+								if(selectItems.length > 0){
+									$.each(selectItems, function(index1, obj1){
+										if(obj1[obj.MXCSM]){
+											value += obj1[obj.MXCSM] + ',';
+										}
+									});
+									if(value.length > 0){
+										value = value.substring(0, value.length - 1);
+									}
+								}else{
+									$.each(settingItems, function(index2, obj2){
+										if(Object.prototype.toString.call(obj2) == '[object Array]'){
+											$.each(obj2, function(index3, obj3){
+												if(obj3.name == obj.MXCSM){
+													value = obj3.value;
+													return false;
+												}
+											});
+										}else{
+											if(obj2.name == obj.MXCSM){
+												value = obj2.value;
+												return false;
+											}
+										}
+									});
+								}
+								
+							}
+							if(String(value) === 'undefined' || String(value) === 'null'){
+								value = '';
+							}
+							if (obj.SFBC == 1 && value == ''){
+								$.bhTip({content: '请选择' + obj.CSM + '参数', state: 'warning'});
+								canOpenReport = false;
+								return false;
+							}
+							param[obj.CSM] = value;
+						});
+						if (canOpenReport){
+							self.openReport(param, item);
+						}
+				    }
+				});
+			},
+			
+			openReport: function(param, item){
+				param.BBWID = item.WID;
+				if(item.YMYS == '01'){
+					$.bhPaperPileDialog.show({
+						content: '<article bh-layout-role="single"><h2>' + item.TITLE + '</h2><section><iframe width="100%" height="800px" frameborder="no" src=""></iframe></section></article>',
+						render: function() {
+							var str = "";
+							for(var key in param){
+								str += '&' + key + '=' + encodeURI(encodeURI(param[key]));
+							}
+							str = str.replace(/&/, "?");//第一个&号改为?号
+							var url = WIS_EMAP_SERV.getContextPath() + '/sys/frReport2/show.do' + str;
+							$('iframe').attr("src", url);
+						}
+					});
+				}
+			},
+			
+			initData: function(){
+				var self = this;
+				var param = {
+					SFQY: '1',
+					PAGE: self.page,
+					APP: window.WIS_CONFIG.APPID
+				};
+				$.ajax({
+					url:window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/modules/bb/cxjwggbbdqx.do", 
+					data: param, 
+					type: 'post', 
+					success:function(resp){
+						self.single = false;
+						self.double = false;
+						if(resp.datas.cxjwggbbdqx.rows.length == 1){
+							self.single = true;
+						}else if(resp.datas.cxjwggbbdqx.rows.length > 1){
+							self.double = true;
+						}
+						self.reportlist = resp.datas.cxjwggbbdqx.rows;
+				    }
+				});
+			}
+		},
+		template: '<div class="bh-l-inline">' + 
+					  '<button v-if="single" class="bh-btn bh-btn-default bh-btn-larger" v-for="item in reportlist" :key="item.WID" @click="btnClick(item)">' +
+					  		'{{item.TITLE}}' +
+					  '</button>' +
+					  '<div v-if="double" class="bh-dropdown bh-ml-4 bh-l-inline" bh-dropdown-role="bhDropdown">' +
+					  		'<button class="bh-btn bh-btn-default bh-btn-larger" type="button" bh-dropdown-role="bhDropdownBtn">' +
+					  			'打印报表' +
+					  		'</button>' +
+					  		'<ul class="bh-dropdown-menu" bh-dropdown-role="bhDropdownMenu"> ' +
+					  			'<li v-for="item in reportlist" :key="item.WID" @click="btnClick(item)"><a href="javascript:void(0)" >{{item.TITLE}}</a></li>' +
+				  			'</ul>' +
+		  			  '</div>' + 
+	  			  '</div>'
+	});
+	window.publicFrReport = function(param){
+		if(!param.el){
+			console.warn('publicFrReport： 缺少必要参数el');
+		}
+		new Vue({
+			el: param.el
+		});
+	};
+});

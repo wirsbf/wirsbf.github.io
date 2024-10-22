@@ -1,0 +1,124 @@
+/* 导入查询样式 */
+button.deleteImportQuery {
+    background-color: #EB7D75 !important;
+    color: #fff !important;
+}
+
+button.deleteImportQuery:hover {
+    background-color: #EB7D75 !important;
+    color: #fff !important;
+}
+
+/* 进度组件样式 */
+.pub-process-widget .process-content {
+    padding: 0 0 20px;
+}
+
+.pub-process-widget .line-process .line-bar {
+    position: relative;
+    width: calc(100% - 80px);
+    height: 25px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.pub-process-widget .line-process .line-bottom {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: #ddd;
+}
+
+.pub-process-widget .line-process .line-top {
+    position: absolute;
+    height: 25px;
+    width: 0;
+    background: #60BE29;
+    transition: width 0.2s;
+}
+
+.pub-process-widget .line-process .percent {
+    line-height: 25px;
+    font-size: 15px;
+    margin-left: 5px;
+}
+
+.pub-process-widget .circle-process .circle-bar {
+    font-size: 120px;
+    width: 1em;
+    height: 1em;
+    position: relative;
+    background: #60BE29;
+    margin: 0 auto;
+}
+
+.pub-process-widget .circle-process .circle-bar-left,
+.pub-process-widget .circle-process .circle-bar-right {
+    width: 1em;
+    height: 1em;
+    background: #eee;
+}
+
+.pub-process-widget .circle-process .circle-bar-right {
+    clip: rect(0, auto, auto, .5em);
+}
+
+.pub-process-widget .circle-process .circle-bar-left {
+    clip: rect(0, .5em, auto, 0);
+}
+
+.pub-process-widget .circle-process .mask {
+    width: 0.8em;
+    height: 0.8em;
+    background-color: #fff;
+    text-align: center;
+    line-height: 0.2em;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.pub-process-widget .circle-process .mask .percent {
+    font-size: 0.2em;
+}
+
+.pub-process-widget .circle-process .mask .number{
+	font-size: 1.5em;
+}
+
+.pub-process-widget .circle-process .circle-bar>div {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto;
+}
+
+.pub-process-widget .circle-bar-right,
+.pub-process-widget .circle-bar-left{
+	transition: transform 0.2s;
+}
+
+.pub-process-widget .circle-process .circle-bar,
+.circle-bar>* {
+    border-radius: 50%;
+}
+
+.pub-process-widget .line-process .number {
+    font-size: 20px;
+    color: #EF971C;
+    padding: 0 5px;
+}
+
+.pub-process-widget .process-bottom {
+    text-align: center;
+    font-size: 20px;
+    line-height: 2em;
+}
+
+.pub-process-widget .process-bottom[data-type="1"] {
+    color: #60BE29;
+}
+
+.pub-process-widget .process-bottom[data-type="0"] {
+    color: #E24034;
+}

@@ -1,0 +1,66 @@
+/*
+ * 对外开放接口：
+ * 1 getRZLB(ROLEID),获取用户角色的任职类别
+ * 
+ * */
+
+var jwrzlb={
+		initialize:function(){
+        	var path=window.location.href;
+            var end = path.indexOf('/sys/');
+            var context_path = path.substring(0, end);
+            this.app_context_path=context_path;
+            this.app_id=window.WIS_CONFIG.APPID;
+		},
+
+		app_context_path:null,
+		app_id:null,
+		
+		getContextPath:function(){
+            return this.app_context_path;
+        },
+        
+        getRZLB:function(ROLEID){
+        	var ret='';
+        	var temp=this.ajaxaction(this.getContextPath()+'/sys/funauthapp/*default/qxgl/EMAP_SAPP_ROLE_RELATION_QUERY.do',{'ROLEID':ROLEID});	
+        	if(temp!=null && temp.datas!=null && temp.datas.EMAP_SAPP_ROLE_RELATION_QUERY.rows.length>0)
+        	{
+        		ret=temp.datas.EMAP_SAPP_ROLE_RELATION_QUERY.rows[0].CONTAINSROLES;
+        	}
+        	return ret;
+        },
+        
+        ajaxaction:function(url,params,callback,callBackAll){
+        	var ret = {};
+        	$.ajax({
+        		url:url.slice(-3)==".do"?url:url+".do",
+        		type:'post',
+        		dataType:'json',
+        		data:params,
+        		async:false,
+        		error: function(XMLHttpRequest, textStatus, errorThrown) {
+        			if(callback!=undefined){
+        				console.log('ajaxaction系统异常，请联系管理员！');
+        			}
+                 },
+        		success:function(data){
+        			if(callBackAll && callBackAll===true){
+        				callback(data);
+        			}else{
+        				if(callback!=undefined){
+        					if(data.code==0){
+        						callback(data);
+        					}else{
+        						console.log('系统异常，请联系管理员！');
+        						return;
+        					}
+        				}else{
+        					ret = data;
+        				}
+        			}
+        		}
+        	});
+        	return ret;
+        }
+};
+jwrzlb.initialize();

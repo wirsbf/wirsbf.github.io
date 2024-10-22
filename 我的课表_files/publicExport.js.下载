@@ -1,0 +1,895 @@
+/**
+ * 公共导出
+ * 传参实例1(emapdatatable导出)：
+ * $.publicExport({
+ 	  event: event,
+	  tableSelector: '#jxrw-applied-index-table',
+	  querySelector: '#jxrw-applied-index-search',
+	  action: 'rwshcx',
+	  fileName: '手工排课',
+	  url: WIS_EMAP_SERV.getAbsPath("/modules/sgpk/rwshcx.do"),//查询地址
+	  totalSize: 20,//总记录数 totalSize和url配置一个即可，如果这两个参数配置了则导出采用多线程的方式，大大提升导出效率，建议导出数据可能超过2000条以上时使用，非必填 add by fengchangtong
+	  appName: 'pkgl',
+	  dealFieldCode: function(colnames){//导出列处理，可不传，初始目的导出KCH时增加TYXMDM
+    	return colnames;
+	  },
+	  searchType: 'emapAdvancedQuery', //搜索类型，默认高级搜索
+	  dealBeanId: 'XkmdglExportService',//实现干预类
+	  orderColumn: "-PKKZH",  //排序字段
+	  querySetting: "[]", //querySetting和querySelector传一个即可
+	  jsonData: [{XNXQDM:nowTerm.code,RWZTDM: '1'}]
+   });
+ * 接口返回的数据中应包含WID字段,实例中的参数必传(querySelector除外)
+ * 传参实例2(通过传字段导出)：
+ * $.publicExportWithFields({
+ 	  event: event,
+	  fieldCode: ['DM', 'MC'],
+	  fieldName: ['代码', '名称'],
+	  action: 'rwshcx',
+	  fileName: '手工排课',
+	  appName: 'pkgl',
+	  dealBeanId: 'XkmdglExportService',//实现干预类
+	  url: WIS_EMAP_SERV.getAbsPath("/modules/sgpk/rwshcx.do"),//查询地址
+	  totalSize：20,//总记录数 totalSize和url配置一个即可，如果这两个参数配置了则导出采用多线程的方式，大大提升导出效率，建议导出数据可能超过2000条以上时使用，非必填 add by fengchangtong
+	  orderColumn: "-PKKZH",  //排序字段
+	  querySetting: [{"name":"DM","value":"aaa,bbb","linkOpt":"and","builder":"m_value_equal"}],
+	  jsonData: [{XNXQDM:nowTerm.code,RWZTDM: '1'}]
+   });
+ * 传参实例3   (搜索-table-导出-自定义列功能)
+ * $.publicDatatableWithExport({
+ 	  pagePath: bs.api.pageModel, 
+ 	  action: 'rwshcx', //必传
+ 	  params: {},
+ 	  customColumns: self.getCustomColumns(),
+ 	  extraParam: {
+ 	  	queryDom: '.sgpk-index-search',
+ 	  	tableDom: '.sgpk-index-table', //必传
+ 	  	searchAction: 'rwshcx', //渲染搜索组件的动作，可不传，如不传则使用emapdatatable的动作
+ 	  	searchPagePath: bs.api.pageModel, //渲染搜索组件的pagePath，可不传。如不传则使用emapdatatable的pagePath
+ 	  	searchOption: {}, //搜索渲染的参数
+ 	  	hasIntervalTime: true, //有请求时间间隔，1s内只允许请求一次，可不传
+ 	  	beforeSearch: function(){}, //搜索前的判断，为true才会继续搜索，可不传
+ 	  	getSearchCallBackParam: function(){ //搜索回调所需的额外参数
+ 	  		return {
+ 	  			XNXQDM: '2017-2018-1'
+ 	  		};
+ 	  	},
+ 	  	getJsonData: function(){ //导出所需的jsonData
+ 	  		return [{
+ 	  			XNXQDM: '2017-2018-1'
+ 	  		}];
+ 	  	},
+ 	  	orderColumn: "-PKKZH",  //排序字段
+ 	  	querySetting: "[]", //导出的querySetting,也可以为函数
+ 	  	fieldCode: ['DM', 'MC'], //导出列代码
+	    fieldName: ['代码', '名称'], //导出列名称
+	    fileName: '手工排课', //导出文件名
+	    dealFieldCode: function(fieldCode){//导出列处理，可不传，初始目的导出KCH时增加TYXMDM
+	    	return fieldCode;
+	    },
+	    url: WIS_EMAP_SERV.getAbsPath("/modules/sgpk/rwshcx.do"),//查询地址
+	  	totalSize：20,//总记录数 totalSize和url配置一个即可，如果这两个参数配置了则导出采用多线程的方式，大大提升导出效率，建议导出数据可能超过2000条以上时使用，非必填 add by fengchangtong
+	    appName: 'pkgl', //app名
+	    dealBeanId: 'XkmdglExportService',//实现干预类
+	    searchType: 'emapAdvancedQuery', //搜索类型，默认高级搜索
+	    hasZdyl: true, //是否需要自定义列功能,默认true
+	    hasExport: true, //是否需要导出功能, 默认true
+	    buttonDom: '' //导出、自定义列按钮的父元素位置，若不传，则加到表格前面
+ 	  }
+   });
+ * 引用实例（在index.jsp文件中：
+ * <script type="text/javascript" src="../../jwpubapp/public/script/publicExport.js"></script>
+ * 
+ * 传参实例4   (调用emapcomponent下的导出)
+ * var exportParams = {
+		app : 'xkmdgl', // 导出app的名称
+		module : 'modules', // 页面模块名称
+		page : 'xkmdgl', // 页面名称
+		action : 'cxxkjg3', // 页面动作
+		appName: 'xkmdgl',
+		TYPE: '1',
+		querySetting: JSON.stringify(querySetting),
+		'*order': '+XH,+KCH, +KXH',
+		XZZTWID: '1234567890',
+		filename : '选课结果' // 导出的文件名字
+	};
+	$.initEmapExport($('#tjxkjg-index-table'), exportParams);
+ * 
+ * 传参实例5(emapdatatable导出基于emapcomponent)：
+ * $.publicExportFn({
+	  tableSelector: '#jxrw-applied-index-table',
+	  querySelector: '#jxrw-applied-index-search',
+	  querySetting: '[]', //可不传
+	  params: {}, //可不传
+	  limitNum: 50000, //默认最大导出数量，可不传，默认50000
+	  action: 'rwshcx',
+	  fileName: '手工排课',
+	  appName: 'pkgl',
+	  pageName: 'cxtj',
+	  tableKey:'WID',//表格导出时勾选用的主键，可不传，默认为WID
+	  queryType:'emapFilter',//emapFilter时传，不传默认为advancedQuery
+	  isGrid:false//是否emapGrid,不传默认为false
+   });
+ *
+ * 传参实例6(导出，支持大量数据)：
+ * $.publicExportForBigData({
+      appname: 'xkmdgl', //应用英文名
+      appcname: 'xkmdgl', //应用中文名
+  	  menu: 'page', //菜单名   不一定是真实的菜单英文名，只要能精确定位到位置
+  	  menuName: '测试页面', //菜单中文名
+  	  action: 'cxpkkz', //查询动作
+	  tableSelector: '#jxrw-applied-index-table', //table选择器
+	  querySelector: '#jxrw-applied-index-search', //query选择器
+	  searchType: 'emapAdvancedQuery', //搜索类型，默认高级搜索
+	  filename: '选课结果', //文件名
+	  actionType: '1', //动作类型     1sql动作    其他  数据模型
+	  captions: '课程号,课程名', //导出字段名称,可不传
+	  colnames: 'KCH,KCM', //导出字段，可不传
+	  param: JSON.stringify({
+		  querySetting: '[{"caption":"排课课组名","name":"PKKZM","value":"1","builder":"include","linkOpt":"AND"}]'
+	  }), //导出参数，可不传
+	  orderColumn: '+KCH', //导出排序，可不传
+	  tn: 'T_XS_JBXX', //数据权限中的tablename 
+	  pageSize: 500, //可不传
+	  type: 'xlsx',//导出文件格式，默认xlsx    可以dbf，可不传
+	  dealBeanId: 'XkmdglExportService',//实现干预类
+	  fieldLength: '',//dbf每一列的长度，type为dbf时，必传
+	  op: 'view' //数据权限中的operation，默认view，可不传
+   });
+ */
+(function($) {
+    $.extend({
+
+        /**
+         * emapdatatable导出显示列
+         */
+        publicExport: function(param) {
+            var _this = this;
+            var selectRecords = $(param.tableSelector).emapdatatable('checkedRecords');
+            var querySetting = '[]';
+            if (param.querySetting) {
+                querySetting = param.querySetting;
+            } else if (param.querySelector) {
+            	if(param.searchType){
+            		querySetting = $(param.querySelector)[param.searchType]('getValue');
+            	}else{
+            		querySetting = $(param.querySelector).emapAdvancedQuery('getValue');
+            	}
+            }
+            if (selectRecords.length > 0) {
+                var wid = "";
+                for (var i = 0; i < selectRecords.length; i++) {
+                    if (i == 0) {
+                        wid = selectRecords[i].WID;
+                    } else {
+                        wid += "," + selectRecords[i].WID;
+                    }
+                }
+                querySetting = '[{"name":"WID","value":"' + wid + '","linkOpt":"and","builder":"m_value_equal"}]';
+            }
+
+            //获取导出列
+            var visibleColumns = $(param.tableSelector).emapdatatable('getVisibleColumns');
+            var colnames = [];
+            var captions = [];
+            $.each(visibleColumns, function(colIndex, colObj) {
+                if (colObj.datafield && colObj.datafield != 'field_checkbox') {
+                    colnames.push(colObj.datafield.split('_')[0]);
+                    captions.push(colObj.text);
+                }
+            });
+
+            if (param.dealFieldCode && param.dealFieldCode instanceof Function) {
+                colnames = param.dealFieldCode(colnames);
+            }
+
+            var totalSize = param.totalSize;
+            if (param.url) {
+                var data = BH_UTILS.doSyncAjax(param.url, {
+                    querySetting: querySetting,
+                    pageSize: 1,
+                    pageNumber: 1
+                });
+                totalSize = data.datas[param.action].totalSize;
+            }
+
+            var url = window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/export/excel.do";
+            var excelParams = {
+                'action': param.action,
+                'captions': captions.join(','),
+                'colnames': colnames.join(','),
+                'filename': param.fileName,
+                'appName': param.appName
+            };
+            //排序字段
+            if (param.orderColumn) {
+                excelParams.orderColumn = param.orderColumn;
+            }
+
+            //干预类
+            if (param.dealBeanId) {
+            	excelParams.dealBeanId = param.dealBeanId;
+            }
+            
+            if (querySetting.length > 0) {
+                excelParams.querySetting = querySetting;
+            }
+
+            if (param.jsonData && JSON.stringify(param.jsonData).length > 4) {
+                excelParams.param = JSON.stringify(param.jsonData);
+            }
+            if (totalSize != null) {
+                excelParams.totalSize = totalSize;
+            }
+            url = encodeURI(url);
+            var id = "jqueryExportExcel";
+            _this.excelForm(excelParams, url, id);
+        },
+
+        /**
+         * emapdatatable导出指定列
+         */
+        publicExportWithFields: function(param) {
+            var _this = this;
+
+            var totalSize = param.totalSize;
+            if (param.url) {
+                var data = BH_UTILS.doSyncAjax(param.url, {
+                    querySetting: JSON.stringify(param.querySetting),
+                    pageSize: 1,
+                    pageNumber: 1
+                });
+                totalSize = data.datas[param.action].totalSize;
+            }
+
+
+            var url = window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/export/excel.do";
+            var excelParams = {
+                'action': param.action,
+                'captions': param.fieldName.join(','),
+                'colnames': param.fieldCode.join(','),
+                'filename': param.fileName,
+                'appName': param.appName
+            };
+            //干预类
+            if (param.dealBeanId) {
+            	excelParams.dealBeanId = param.dealBeanId;
+            }
+            //排序字段
+            if (param.orderColumn) {
+                excelParams.orderColumn = param.orderColumn;
+            }
+            if (param.querySetting.length > 0) {
+                excelParams.querySetting = JSON.stringify(param.querySetting);
+            }
+            var qString = param.jsonData;
+            if (qString && JSON.stringify(qString).length > 4) {
+                excelParams.param = JSON.stringify(qString);
+            }
+            if (totalSize != null) {
+                excelParams.totalSize = totalSize;
+            }
+            url = encodeURI(url);
+            var id = "jqueryExportExcel";
+            _this.excelForm(excelParams, url, id);
+
+        },
+
+        /**
+         * 搜索-表格-导出-自定义列
+         */
+        publicDatatableWithExport: function(param) {
+            var _this = this;
+            if (!param.action || !param.extraParam || !param.extraParam.tableDom) {
+                console.log("缺少必传字段！");
+                return;
+            }
+
+            var defaultExtraParam = {
+                searchType: 'emapAdvancedQuery',
+                showTotalNum: true,
+                hasExport: true,
+                hasZdyl: true
+            };
+            var extraParam = param.extraParam;
+            extraParam = $.extend({}, defaultExtraParam, extraParam);
+
+            var defaultTableOption = {
+                fastRender: true,
+                sortable: true,
+                params: {}
+            };
+            if(!param.pageSizeOptions && window.emapdatatableDefaultPageSize){
+            	var defaultPageSize = parseInt(window.emapdatatableDefaultPageSize);
+            	defaultTableOption.pageSize = defaultPageSize;
+            	if(defaultPageSize <= 20){
+            		defaultTableOption.pageSizeOptions = [defaultPageSize, defaultPageSize*2, defaultPageSize*5, defaultPageSize*10];
+            	}else if(defaultPageSize <= 40){
+            		defaultTableOption.pageSizeOptions = [defaultPageSize, defaultPageSize*2, defaultPageSize*5];
+            	}else if(defaultPageSize <= 100){
+            		defaultTableOption.pageSizeOptions = [defaultPageSize, defaultPageSize*2];
+            	}else{
+            		defaultTableOption.pageSizeOptions = [defaultPageSize];
+            	}
+            }
+            var tableOption = $.extend(true, {}, defaultTableOption, param);
+            delete tableOption.extraParam;
+
+            //自定义列固定
+            if (tableOption.customColumns) {
+                $.each(tableOption.customColumns, function(index, obj) {
+                    if (obj.column) {
+                        if (!obj.column.pinned && String(obj.column.pinned) != 'false') {
+                            obj.column.pinned = true;
+                        }
+                    } else {
+                        obj.pinned = true;
+                    }
+
+                });
+            }
+
+            var buttonHtml = '';
+            if (extraParam.hasExport) {
+            	if(extraParam.buttonDom){
+            		buttonHtml += '<a href="javascript:void(0)" class="bh-btn bh-btn-default ' + tableOption.action + '-export" data-disabled="0">导出</a>';
+            	}else{
+            		buttonHtml += '<div class="bh-pull-left bh-mb-8">' +
+            		'<a href="javascript:void(0)" class="bh-btn bh-btn-default ' + tableOption.action + '-export" data-disabled="0">导出</a>' +
+            		'</div>';
+            	}
+            }
+            if (extraParam.hasZdyl) {
+                buttonHtml += '<div class="bh-pull-right bh-mb-8" style="margin: 5px 0;">' +
+                    '<span class="bh-switch-item bh-switch-setting ' + tableOption.action + '-zdyl" style="margin-right: 8px;cursor: pointer;">' +
+                    '<i class="iconfont icon-zidingyixianshilie"></i>' +
+                    '<span>自定义列</span>' +
+                    '</span>' +
+                    '</div>';
+            }
+            if(extraParam.buttonDom){
+            	$(extraParam.buttonDom).append(buttonHtml);
+            }else{
+            	buttonHtml += '<div class="bh-clearfix"></div>';
+            	$(extraParam.tableDom).before(buttonHtml);
+            }
+
+            if (extraParam.queryDom) {
+                var searchOption = extraParam.searchOption ? extraParam.searchOption : {};
+                if (!searchOption.data) {
+                    searchOption.data = WIS_EMAP_SERV.getModel((extraParam.searchPagePath?extraParam.searchPagePath:param.pagePath), (extraParam.searchAction?extraParam.searchAction:param.action), "search");
+                    searchOption.data.controls = searchOption.data.controls.filter(function(item){
+                    	return !item['search.hidden'];
+                    });
+                }
+                if (extraParam.searchType == 'emapFilterQuery') {
+                    searchOption.showBlankOption = false;
+                    if (!searchOption.onSearch) {
+                        searchOption.onSearch = function(data) {
+                            if (extraParam.hasIntervalTime) {
+                                if (window.isIntervalTime) {
+                                    $.bhTip({
+                                        content: '正在请求中，请稍后再试！',
+                                        state: 'warning'
+                                    });
+                                    return false;
+                                } else {
+                                    window.isIntervalTime = true;
+                                    setTimeout(function() {
+                                        window.isIntervalTime = false;
+                                    }, 1000);
+                                }
+                            }
+                            if (extraParam.beforeSearch && extraParam.beforeSearch instanceof Function) {
+                                if (!extraParam.beforeSearch()) {
+                                    return false;
+                                }
+                            }
+                            var searchCallBackParam = {};
+                            if (extraParam.getSearchCallBackParam) {
+                                searchCallBackParam = extraParam.getSearchCallBackParam(data);
+                            }
+                            if (!searchCallBackParam.querySetting) {
+                                searchCallBackParam.querySetting = $(extraParam.queryDom).emapFilterQuery('getValue');
+                            }
+                            if (searchCallBackParam != false) {
+                                $(extraParam.tableDom).emapdatatable('reloadFirstPage', searchCallBackParam);
+                            }
+                        };
+                    }
+                    $(extraParam.queryDom).emapFilterQuery(searchOption);
+                    $(extraParam.queryDom).find('[data-field="_commonFilter"]').hide();
+                } else {
+                    if (!searchOption.showTotalNum && String(searchOption.showTotalNum) != 'false') {
+                        searchOption.showTotalNum = extraParam.showTotalNum;
+                    }
+                    $(extraParam.queryDom).emapAdvancedQuery(searchOption);
+                    $(extraParam.queryDom).on('search', function(e, data, opts) {
+                        if (extraParam.hasIntervalTime) {
+                            if (window.isIntervalTime) {
+                                $.bhTip({
+                                    content: '正在请求中，请稍后再试！',
+                                    state: 'warning'
+                                });
+                                return false;
+                            } else {
+                                window.isIntervalTime = true;
+                                setTimeout(function() {
+                                    window.isIntervalTime = false;
+                                }, 1000);
+                            }
+                        }
+                        if (extraParam.beforeSearch && extraParam.beforeSearch instanceof Function) {
+                            if (!extraParam.beforeSearch()) {
+                                return false;
+                            }
+                        }
+                        var searchCallBackParam = {};
+                        if (extraParam.getSearchCallBackParam) {
+                            searchCallBackParam = extraParam.getSearchCallBackParam(e, data, opts);
+                        }
+                        if (!searchCallBackParam.querySetting) {
+                            searchCallBackParam.querySetting = data;
+                        }
+                        $(extraParam.tableDom).emapdatatable('reloadFirstPage', searchCallBackParam);
+                    });
+
+                    if (extraParam.showTotalNum && !tableOption.searchElement) {
+                        tableOption.searchElement = $(extraParam.queryDom);
+                    }
+                }
+            }
+            $(extraParam.tableDom).emapdatatable(tableOption);
+
+            /**
+             * 自定义列事件
+             */
+            if (extraParam.hasZdyl) {
+                $('.' + tableOption.action + '-zdyl').on('click', function() {
+                    $(extraParam.tableDom).emapdatatable('selectToShowColumns');
+                });
+            }
+            /**
+             * 导出事件
+             */
+            if (extraParam.hasExport) {
+                $('.' + tableOption.action + '-export').on('click', function(e) {
+                    var $dom = $(e.currentTarget);
+                    if ($dom.attr('data-disabled') == '1') {
+                        $.bhTip({
+                            content: '操作太频繁啦！请10s后再试。',
+                            state: 'warning'
+                        });
+                        return false;
+                    }
+                    $dom.attr('data-disabled', '1');
+                    if (extraParam.beforeSearch && extraParam.beforeSearch instanceof Function) {
+                        if (!extraParam.beforeSearch()) {
+                            $dom.attr('data-disabled', '0');
+                            return false;
+                        }
+                    }
+                    /**
+                     * 搜索条件
+                     */
+                    var querySetting = "[]";
+                    if (extraParam.querySetting) {
+                        if (extraParam.querySetting instanceof Function) {
+                            querySetting = extraParam.querySetting();
+                        } else {
+                            querySetting = extraParam.querySetting;
+                        }
+                    } else if (extraParam.queryDom) {
+                        if (extraParam.searchType == 'emapFilterQuery') {
+                            querySetting = $(extraParam.queryDom).emapFilterQuery('getValue');
+                        } else {
+                            querySetting = $(extraParam.queryDom).emapAdvancedQuery('getValue');
+                        }
+                    }
+                    var selectRecords = $(extraParam.tableDom).emapdatatable('checkedRecords');
+                    if (selectRecords.length > 0) {
+                        var wid = "";
+                        for (var i = 0; i < selectRecords.length; i++) {
+                            if (i == 0) {
+                                wid = selectRecords[i].WID;
+                            } else {
+                                wid += "," + selectRecords[i].WID;
+                            }
+                        }
+                        querySetting = '[{"name":"WID","value":"' + wid + '","linkOpt":"and","builder":"m_value_equal"}]';
+                    }
+
+                    /**
+                     * JSON条件
+                     */
+                    var jsonDate = [];
+                    if (extraParam.getJsonData) {
+                        jsonDate = extraParam.getJsonData();
+                    }
+
+                    /*获取导出列*/
+                    var fieldName = [];
+                    var fieldCode = [];
+                    if (extraParam.fieldName && extraParam.fieldCode) {
+                        fieldCode = extraParam.fieldCode;
+                        fieldName = extraParam.fieldName;
+                    } else {
+                        var visibleColumns = $(extraParam.tableDom).emapdatatable('getVisibleColumns');
+                        $.each(visibleColumns, function(colIndex, colObj) {
+                            if (colObj.datafield && colObj.datafield != 'field_checkbox') {
+                                fieldCode.push(colObj.datafield.split('_')[0]);
+                                fieldName.push(colObj.text);
+                            }
+                        });
+                    }
+                    if (extraParam.dealFieldCode && extraParam.dealFieldCode instanceof Function) {
+                        fieldCode = extraParam.dealFieldCode(fieldCode);
+                    }
+
+                    //排序字段
+
+
+                    var totalSize = extraParam.totalSize;
+                    if (extraParam.url) {
+                        var data = BH_UTILS.doSyncAjax(extraParam.url, {
+                            querySetting: querySetting,
+                            pageSize: 1,
+                            pageNumber: 1
+                        });
+                        totalSize = data.datas[tableOption.action].totalSize;
+                    }
+
+                    var url = window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/export/excel.do";
+                    var excelParams = {
+                        'action': tableOption.action,
+                        'captions': fieldName.join(','),
+                        'colnames': fieldCode.join(','),
+                        'filename': extraParam.fileName,
+                        'appName': extraParam.appName
+                    };
+                    //干预类
+                    if (extraParam.dealBeanId) {
+                    	excelParams.dealBeanId = extraParam.dealBeanId;
+                    }
+                    //排序字段
+                    if (extraParam.orderColumn) {
+                        excelParams.orderColumn = extraParam.orderColumn;
+                    }
+                    if (querySetting.length > 2) {
+                        excelParams.querySetting = querySetting;
+                    }
+                    if (jsonDate && JSON.stringify(jsonDate).length > 4) {
+                        excelParams.param = JSON.stringify(jsonDate);
+                    }
+                    if (totalSize != null) {
+                        excelParams.totalSize = totalSize;
+                    }
+                    url = encodeURI(url);
+                    var id = tableOption.action + "jqueryExportExcel";
+                    _this.excelForm(excelParams, url, id);
+                    setTimeout(function() {
+                        $dom.attr('data-disabled', '0');
+                    }, 30000);
+                });
+            }
+        },
+
+        excelForm: function(params, url, id) {
+            //创建form表单
+            var temp_form = document.createElement("form");
+            temp_form.action = url;
+            //如需打开新窗口，form的target属性要设置为'_blank'
+            temp_form.target = "_blank";
+            temp_form.method = "post";
+            temp_form.style.display = "none";
+            temp_form.id = id;
+            //添加参数
+            for (var item in params) {
+                var opt = document.createElement("input");
+                opt.name = item;
+                opt.value = params[item];
+                temp_form.appendChild(opt);
+            }
+            document.body.appendChild(temp_form);
+            //提交数据
+            temp_form.submit();
+            $("#" + id).remove();
+        },
+
+        /**
+         * 初始化导出功能
+         * @param grid 导出关联的表格对象,可以为空
+         * @param opts 导出属性
+         */
+        initEmapExport: function(grid, opts) {
+            var params = {};
+            opts.drbs = $(grid).selector;
+            if (grid) {
+                //判断表格是否有emap-role="datatable"属性
+                if ($(grid).attr('emap-role') != 'datatable') {
+                    grid = $(grid).find('.bh-grid-table');
+                }
+                // 表格列处理
+                if (opts && !opts['colnames']) {
+                    var names = [];
+                    var _columns = $(grid).jqxDataTable('_columns');
+                    if (_columns && _columns.length > 0) {
+                        for (var i = 0; i < _columns.length; i++) {
+                            if (_columns[i].hidden || !_columns[i].datafield || _columns[i].datafield == 'field_checkbox') {
+                                continue;
+                            }
+                            var name = _columns[i].datafield.replace('_DISPLAY', '');
+                            names.push(name);
+                        }
+                    }
+                    if (names.length < 1) {
+                        $.alert($.i18N("ggglmk.select_export_columns|请选择导出列"));
+                        return;
+                    }
+                    params['colnames'] = names.join();
+                }
+                // 表格排序处理
+                if (opts && !opts['order']) {
+                    var orders = $(grid).emapdatatable('getSort');
+                    if (orders) {
+                        orders = orders.exp.replace('_DISPLAY', '');
+                        params['*order'] = orders;
+                        params['order'] = orders;
+                    }
+                }
+            }
+            opts = $.extend(params, opts);
+            var exportUrl = '../../emapcomponent/imexport/export.do';
+            require('./utils').doAjax(exportUrl, opts, 'POST').done(function(ret) {
+                if (ret && ret.attachment) {
+                    location.href = '../../emapcomponent/file/getAttachmentFile/' + ret.attachment + '.do';
+                }
+                return false;
+            });
+        },
+        publicExportFn: function(params) {
+            if (!window.location.origin) {
+                window.location.origin = window.location.protocol + "//" + window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+            }
+            var el = {
+                "app": params.appName,
+                "contextPath": window.location.origin + WIS_CONFIG.PATH,
+                "module": "modules",
+                "page": params.pageName,
+                "action": params.action,
+                'containerId': params.tableSelector,
+                'filename': params.fileName
+            };
+            var querySetting = '[]';
+            if(params.querySelector){
+                if (params.queryType == 'emapFilter'||params.queryType == 'emapFilterQuery') {
+                    querySetting = $(params.querySelector).emapFilterQuery('getValue');
+                } else {
+                    querySetting = $(params.querySelector).emapAdvancedQuery('getValue');
+                }
+            }
+            querySetting = JSON.parse(querySetting);
+            if (params.querySetting) {
+                var defaultSetting = JSON.parse(params.querySetting);
+                $.each(defaultSetting, function(index, item) {
+                    querySetting.push(item);
+                });
+            }
+            if (params.params) {
+                el = $.extend(el, params.params);
+            }
+            var $table = $(params.tableSelector);
+            //grid时特殊处理
+            if (params.isGrid) {
+                el.isGrid = params.isGrid;
+                $table = $(params.tableSelector).emapGrid('getTable');
+            }
+            var checkedData = $table.emapdatatable('checkedRecords');
+            var keyName = params.tableKey ? params.tableKey : 'WID';
+            var keyValues = "";
+            $.each(checkedData, function(index, item) {
+                keyValues += item[keyName] + ",";
+            });
+            if (checkedData.length > 0) {
+                querySetting.push({
+                    caption: "",
+                    name: keyName,
+                    value: keyValues.slice(0, -1),
+                    builder: 'm_value_equal',
+                    linkOpt: 'AND'
+                });
+            }
+            if (querySetting) {
+                el["querySetting"] = JSON.stringify(querySetting);
+            }
+            el["order"] = params.order;
+
+            var limitNum = 50000;
+            if (params.limitNum) {
+                limitNum = params.limitNum;
+            }
+            var queryParams = {
+                querySetting: el.querySetting,
+                pageSize: 1,
+                pageNumber: 1
+            };
+            if (params.params) {
+                queryParams = $.extend(queryParams, params.params);
+            }
+            var res = BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath('modules/' + params.pageName + '/' + params.action + '.do'), queryParams);
+            var totalSize = res.datas[params.action].totalSize;
+            if (totalSize > limitNum) {
+                $.bhTip({
+                    content: '导出数据超过最大限制' + limitNum + '条',
+                    state: 'warning'
+                });
+                return false;
+            }
+            this.exportForApp(el);
+        },
+
+        /**
+         * 封装导出功能
+         * @param el 封装好的参数对象，其中需拼装的属性有 "app","contextPath","module","page","action","querySetting","*order","containerId"
+         */
+        exportForApp: function(el) {
+            var $table = $(el.containerId);
+            if (el.isGrid) {
+                $table = $(el.containerId).emapGrid('getTable');
+            }
+            var url = el.contextPath + "/sys/emapcomponent/imexport/export.do";
+            var params = el;
+            params["module"] = el.module ? el.module : "*default";
+            if (!el.colnames) {
+                var visibleColumns = $table.emapdatatable("getVisibleColumns");
+                var colnames = "";
+                for (var i = 0; i < visibleColumns.length; i++) {
+                    if (visibleColumns[i].datafield && visibleColumns[i].datafield != "field_checkbox") {
+                        colnames += visibleColumns[i].datafield.replace("_DISPLAY", "") + ",";
+                    }
+                }
+                params["colnames"] = colnames.substr(0, colnames.length - 1);
+            }
+            if (!el.order) {
+                var pxzd = $table.emapdatatable("getSort");
+                if (pxzd && pxzd.length > 0) {
+                    params["*order"] = pxzd.exp.replace("_DISPLAY", "");
+                }
+            } else {
+                params["*order"] = el.order;
+            }
+
+            jQuery.ajax({
+                url: url,
+                data: params,
+                type: 'post',
+                dataType: 'json',
+                cache: false,
+                success: function(ret) {
+                    var attachment = ret.attachment;
+                    var url = el.contextPath + "/sys/emapcomponent/file/getAttachmentFile/" + attachment + ".do";
+                    window.location.href = url;
+                    return false;
+                },
+                error: function(resp) {
+                    if (resp.status == 401) {
+                        window.location.reload();
+                    } else if (resp.status == 403) {
+                        BH_UTILS.bhDialogWarning({
+                            title: '提示',
+                            content: '当前角色权限不足，请切换角色后重新操作',
+                            buttons: [{
+                                text: '确认',
+                                className: 'bh-btn-warning',
+                                callback: function() {}
+                            }]
+                        });
+                        return false;
+                    }
+                    // 长时间未操作提示错误
+                    if (resp.statusText.indexOf("NetworkError") > -1) {
+                        BH_UTILS.bhDialogDanger({
+                            title: '网络错误',
+                            content: '您可以尝试刷新页面解决该问题',
+                            buttons: [{
+                                text: '关闭',
+                                className: 'bh-btn-default'
+                            }]
+                        });
+                        return false;
+                    }
+                }
+            });
+        },
+
+
+        publicExportForBigData: function(param) {
+            if (!param) {
+                console.error('导出传参不可为空');
+                return false;
+            }
+            var exportPatam = JSON.parse(JSON.stringify(param));
+            delete exportPatam.querySelector;
+            delete exportPatam.tableSelector;
+            delete exportPatam.searchType;
+            if (!exportPatam.param) {
+                exportPatam.param = {};
+            }
+            var querySetting = '[]';
+            var selectRecords = $(param.tableSelector).emapdatatable('checkedRecords');
+            if (selectRecords.length > 0) {
+                var wid = "";
+                for (var i = 0; i < selectRecords.length; i++) {
+                    if (i == 0) {
+                        wid = selectRecords[i].WID;
+                    } else {
+                        wid += "," + selectRecords[i].WID;
+                    }
+                }
+                querySetting = '[{"name":"WID","value":"' + wid + '","linkOpt":"and","builder":"m_value_equal"}]';
+            } else if (exportPatam.param.querySetting) {
+                querySetting = exportPatam.param.querySetting;
+            } else if (param.querySelector) {
+                if (param.searchType) {
+                    querySetting = $(param.querySelector)[param.searchType]('getValue');
+                } else {
+                    querySetting = $(param.querySelector).emapAdvancedQuery('getValue');
+                }
+            }
+            exportPatam.param.querySetting = querySetting;
+            exportPatam.param = JSON.stringify(exportPatam.param);
+
+            //获取导出列
+            if (!exportPatam.captions || !exportPatam.colnames) {
+                var colnames = [];
+                var captions = [];
+                var visibleColumns = $(param.tableSelector).emapdatatable('getVisibleColumns');
+                $.each(visibleColumns, function(colIndex, colObj) {
+                    if (colObj.datafield && colObj.datafield != 'field_checkbox') {
+                        colnames.push(colObj.datafield.split('_')[0]);
+                        captions.push(colObj.text);
+                    }
+                });
+                if (param.dealFieldCode && param.dealFieldCode instanceof Function) {
+                    colnames = param.dealFieldCode(colnames);
+                }
+                exportPatam.captions = captions.join(',');
+                exportPatam.colnames = colnames.join(',');
+            }
+
+            //排序字段
+            if (param.orderColumn) {
+                orderColumn = "&orderColumn=" + param.orderColumn;
+                exportPatam.orderColumn = param.orderColumn;
+            }
+            var locationHash = window.locationHash ? window.locationHash : ('/' + window.appname);
+            exportPatam.menu = locationHash.split('/')[1];
+
+            var url = window.context_path + "/sys/jwpubapp/export/generateAttachment.do";
+            jQuery.ajax({
+                url: url,
+                data: exportPatam,
+                type: 'post',
+                dataType: 'json',
+                cache: false,
+                success: function(resp) {
+                    if (resp.code == '1') {
+                        $.bhTip({
+                            content: '正在生成文件，请稍后在 导出文件列表 中查看！',
+                            state: 'success'
+                        });
+                    } else {
+                        $.bhTip({
+                            content: '生成文件失败！',
+                            state: 'danger'
+                        });
+                    }
+                    return false;
+                },
+                error: function(resp) {
+
+                }
+            });
+        }
+    });
+})(jQuery);

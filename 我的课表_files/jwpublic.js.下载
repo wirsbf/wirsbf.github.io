@@ -1,0 +1,410 @@
+/**
+ * 教务系统公用js，采用新前端，新增一个公用js，防止和以前的冲突
+ */
+
+/**
+ * 判断字符串是否为空
+ */
+function isStrNull(str,removeBlank){
+	if(str && str!=null && str!=""){
+		str = str.toString();
+		if(removeBlank){
+			str=str.replace(/\s/g,"");
+		}
+		if(str.length< 1){
+			return true;
+		}else{
+			return false;
+		}
+	}else{
+		return true;
+	}
+}
+
+//将null转化成“”
+function strNullToBalnk(str){
+	if(isStrNull(str,true)){
+		str="";
+	}
+	return str;
+}
+
+/**
+ * 获取下拉框的选择文字
+ */
+function getDropDownListText(obj){
+	var item = $(obj).jqxDropDownList('getSelectedItem');
+	if(item){
+		return item.label ? item.label : "";
+	}
+}
+
+/**
+ * dropdownlist级联
+ */
+function setDropList(obj,key,value){
+	var code_param = WIS_EMAP_SERV.buildCodeSearchParam(key,value);
+	$(obj).data("jsonparam", code_param);
+	try{
+		$(obj).jqxDropDownList('source').dataBind();
+	}catch(e){}
+	dropListClear(obj);
+}
+
+function setDropListArr(obj,paramArr){
+	if(!paramArr || paramArr.length == 0) {
+		
+		return;
+	}
+	var code_param = [];
+	paramArr.forEach(function(v){
+		var obj = {"name":v.key,"value":v.value,"linkOpt":"and","builder":"equal"};
+		code_param.push(obj);
+	});
+	$(obj).data("jsonparam", {searchValue:JSON.stringify(code_param)});
+	try{
+		$(obj).jqxDropDownList('source').dataBind();
+	}catch(e){}
+	dropListClear(obj);
+}
+
+/**
+ * dropdownlist清空
+ */
+function dropListClear(obj){
+	$(obj).jqxDropDownList("clearSelection");
+	$(obj).jqxDropDownList("val","");
+}
+	
+/**
+ * 截取字符串
+ * @param oldString			老的字符串
+ * @param widthOrNumber		长度或者宽度
+ * @param fontSize			字体大小，按照宽度时需要使用
+ * @param isSpecial 		是否特殊字符，特殊字符占两位
+ */
+function customSubstr(oldString,widthOrNumber,isSpecial,fontSize){
+	var oldString = oldString + '';//兼容传递进来的数据非字符串
+	//默认按照个数
+	var type = "1";
+	if(widthOrNumber && widthOrNumber!=""){
+		//获取长度
+		if(widthOrNumber.indexOf("px")>=0){
+			widthOrNumber = parseInt(widthOrNumber.substring(0,widthOrNumber.length-2));
+			type = '2';
+		}else{
+			widthOrNumber = parseInt(widthOrNumber);
+		}
+	}else{
+		return oldString;
+	}
+	//默认字体大小12
+	if(!fontSize){
+		fontSize = 12;
+	}
+	//返回的字符串
+	if(isSpecial && isSpecial===true){
+		var newString="";
+		var sum = 0;
+		for(var i=0;i< oldString.length;i++){
+			if(oldString.charCodeAt(i) > 255){
+				if(type=="1"){
+					sum+=2;
+				}
+				if(type=="2"){
+					sum+=fontSize;
+				}
+			}else{
+				if(type=="1"){
+					sum+=1;
+				}
+				if(type=="2"){
+					sum+=fontSize/2;
+				}
+			}
+			if(sum>=widthOrNumber){
+				newString+="...";
+				break;
+			}
+			newString+=oldString[i];
+		}
+		return newString;
+	}else{
+		//如果不区分
+		if(type=="1"){
+			return oldString.substring(0,widthOrNumber-1);
+		}
+		if(type=="2"){
+			return oldString.substring(0,Math.floor(widthOrNumber/fontSize)-1);
+		}
+	}
+}
+
+//将字符串中单引号用两个单引号代替,用于查询时的SQL条件
+function replaceSingleQuotesByDouble(sqlCondition){
+	sqlCondition  = sqlCondition  + "";
+	sqlCondition = sqlCondition.replace(/\'/g,"''");
+	return sqlCondition;
+}
+
+/**
+ * 获取数据角色id
+ */
+function getDataRoleId(appid){
+	var ret ="";
+	var url = "../../jwpublic/getDataRoleId.do";
+	if(appid && appid=="JWRWGL"){
+		url = "../jwpublic/getDataRoleId.do";
+	}
+	$.ajax({
+		url:url,
+		type:'post',
+		dataType:'json',
+		data:{},
+		async:false,
+		timeout:6000000,
+		success:function(data){
+			ret = data.dataRoleId;
+		},
+		error:function(data){
+			ret = "";
+		}
+	});
+	return ret;
+}
+
+/**
+ * @param title				
+ * @param content
+ * @param type			warning,success,danger
+ * @param buttons		自定义按钮
+ * @param callback		回调函数，如果传入回调函数，那么会有“确认”，“取消”按钮，如果没有回调函数，也没有buttons,则只有“确认按钮”
+ */
+function BhDialog(title,content,type,buttonsParams,callback){
+	var buttons;
+	if(callback){
+		buttons=[
+	        {text:'确认',className:'bh-btn-warning',callback:function(){callback();}},
+			{text:'取消',className:'bh-btn-primary'}
+	    ];
+	}else if(!callback && buttonsParams){
+		buttons = buttonsParams;
+	}else{
+		buttons=[
+	        {text:'确认',className:'bh-btn-warning'}
+	    ];
+	}
+	var params = {"title":title,"content":content,"buttons":buttons};
+	if(type=="warning"){
+		BH_UTILS.bhDialogWarning(params);
+	}
+	if(type=="success"){
+		BH_UTILS.bhDialogSuccess(params);
+	}
+	if(type=="danger"){
+		BH_UTILS.bhDialogDanger(params);
+	}
+}
+
+
+//弹出pagedialog
+function showPageDialog(options){
+	var defaultOptions = {
+			render:"",
+			tilteContainer:"",
+			tilte:"新开课程",
+			contentHtml:"",
+			footHtml:"",
+			open:null,
+			ready:null,
+			outline:true
+	};
+	
+	options = $.extend({},defaultOptions,options);
+	
+	 //当同多个弹框在同一容器上使用时，将其他的弹框销毁
+    if (!$("div.bh-paper-pile-dialog").hasClass("consultBespeakNewRecordDialogFlag")) {
+        $.bhPaperPileDialog.destroy();
+    }
+    //初始化弹框
+    $.bhPaperPileDialog.show({
+        //弹框要插入的容器
+        referenceContainer: options.render,
+        //弹框的父层title容器
+        titleContainer: options.tilteContainer,
+        //给弹框额外添加的样式，主要给用户做操作使用
+        addDialogFlagClass: "consultBespeakNewRecordDialogFlag",
+        //显示弹框后要隐藏的容器，主要在弹框内容比当前页面内容少的时候
+        toHideContainer: options.render,
+        //弹框的title
+        title: options.tilte,
+        //弹框的内容
+        content: options.contentHtml,
+        //弹框的页脚按钮
+        footer: options.footHtml,
+        //点击弹框自带的关闭执行的回调
+        open: function(){
+           // $("div.bh-form-outline").show();
+        	if(options.open){
+        		options.open();
+        	}
+        },
+       //初始化弹框完成后的回调
+        ready: function(){
+        	if(options.ready){
+        		options.ready();
+        	}
+        	
+        	if(options.outline){
+        		$.bhFormOutline.show({
+                    //大纲要插入的容器
+                    insertContainer: $("div.bh-paper-pile-dialog"),
+                    //设置大纲的偏移量
+                    offset: {right: 16, top: 84},
+                    //锚点定位时与浏览器顶部的距离
+                    scrollOffsetTop: $("header.bh-header-mini").outerHeight()+16
+                });
+
+                //滚动条滚动时，设置节点变成浮动
+                $.bhAffix({
+                    //浮动块所在的容器
+                    hostContainer: $("div.bh-paper-pile-dialog"),
+                    //要浮动的容器
+                    fixedContainer: $("div.bh-form-outline")
+                });
+        	}
+        }
+    });
+}
+
+//选择先修课程
+function bindXxkcNew(div,pageid,actionid){
+	$("input[name=XXKC]").on("click",function(){
+		$(div).load("../modules/kcsq/kcxz.html?v=2"+new Date().getTime(), function(){
+			var searchData = WIS_EMAP_SERV.getModel("./modules/"+pageid+".do?*json=1",actionid, "search");
+	    	$('#kcgl-kcxz-advance').emapAdvancedQuery({data: searchData});
+	    	$('#kcgl-kcxz-advance').on('search', function(e, data, opts){
+	    		$('.kcgl-kcxz-table').emapdatatable("reload",{querySetting:JSON.stringify(data)});
+	        });
+	    	
+	    	$('.kcgl-kcxz-table').emapdatatable({
+				pagePath: "/modules/"+pageid+".do",
+				action: actionid,
+				params: {},
+				customColumns: [
+		        	{colIndex: 0, type: 'checkbox'}//序号从0开始
+		        ]
+			});
+			
+			BH_UTILS.bhWindow($('.kzgl-kcxz-div'),"添加先修课程",{},{width:800,
+				position: { x: (document.body.clientWidth-800)/2, y: $(document).scrollTop()+(document.body.clientHeight-600)/2}});
+			
+			$(".kcgl-kcxz-select").on("click",function(){
+				var kch="",kcm="";
+				var selectItems = $(".kcgl-kcxz-table").emapdatatable("checkedRecords");
+				var $item=$("input[name=XXKC]");
+				if(selectItems.length < 1){
+					var successfunction = function(){
+						$item.val(kcm);
+						$item.data("kch",kch);
+						BH_UTILS.bhWindow.close();
+					};
+					BhDialog("未选择课程，将删除原课程的先修课程","","warning",[
+	               	    {text:'确定',className:'bh-btn-warning',callback:successfunction},
+	               	    {text:'取消',className:'bh-btn-primary'}]);
+				}else{
+					for(var i=0;i< selectItems.length;i++){
+						kch+=selectItems[i].KCH+",";
+						kcm+=selectItems[i].KCM+",";
+					}
+					if(kch.length>0){
+						
+						kch=kch.substring(0,kch.length-1);
+					} 
+					if(kcm.length>0){
+						
+						kcm=kcm.substring(0,kcm.length-1);
+					}
+					$item.val(kcm);
+					$item.data("kch",kch);
+					BH_UTILS.bhWindow.close();
+				}
+			});
+		});
+	});
+}
+
+//确认操作
+function confirmAction(content,callback){
+	BH_UTILS.bhDialogWarning({
+        title:'确认操作',
+        content: content || '确认操作所选的数据!', 
+        buttons:[{text:'确认',className:'bh-btn-warning',callback:function(){
+        	callback();}
+        },{text:'取消',className:'bh-btn-default'}]
+    });
+}
+
+/**
+ * 获取图标
+ * @param type		标签类型
+ */
+function loadLaberByAjax(laberType,key){
+	var ret="";
+	var url = "../../jwpublic/getLaberByLb.do";
+	var params ={"laberType":laberType,"key":key};
+	if(laberType && laberType=="CODE"){
+		url = "../../code/"+key+".do";
+		param = {};
+	}	
+	$.ajax({
+		url:url,
+		type:'post',
+		dataType:'json',
+		data:params,
+		async:false,
+		timeout:6000000,
+		success:function(data){
+			if(laberType && laberType=="CODE"){
+				ret=data.datas.code.rows;
+			}else{
+				ret =data;
+			}
+		},
+		error:function(data){
+			ret="";
+		}
+	});
+	var obj = [];
+	if(laberType && laberType=="CODE"){
+		for(var i=0;i< ret.length;i++){
+			obj.push({"BQDM":ret[i].id,"BQMS":ret[i].name});
+		}
+	}else{
+		obj =ret;
+	}
+	return obj;
+}
+
+/**
+ * 根据窗口高度获取自适应的高度
+ * @param ratio				窗口比例
+ * @param optimalHeight		最佳高度/最大高度
+ * @param minHeight			最小高度
+ */
+function getHeightByWindow(optimalHeight,ratio,minHeight){
+	if(!ratio || isNaN(ratio))
+		{ ratio = 0.5;}
+	if(!optimalHeight || isNaN(optimalHeight))
+		{ optimalHeight = null;}
+	if(!minHeight || isNaN(minHeight))
+		{minHeight = null;}
+	var winHeight = $(window).height();
+	if(optimalHeight && winHeight>optimalHeight){
+		return optimalHeight;
+	}
+	if(minHeight && winHeight*ratio < minHeight){
+		return minHeight;
+	}
+	return winHeight*ratio;
+}

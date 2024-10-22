@@ -1,0 +1,931 @@
+/**
+ * 默认使用变量:contextPath,appName
+ */
+
+/**
+ * 测试函数
+ */
+function testGgFunctions(){
+	alert("this is testGgFunctions");
+}
+
+/**
+ * 全选，全不选
+ */
+function dataTableAllSelect(){
+	$("#allselect").click(function() {
+        $("[name='chk']").prop("checked", this.checked);
+    });
+	$("[name='chk']").click(function() {
+		$("#allselect").prop("checked", $("[name='chk']:checked").size() == $("[name='chk']").size());
+	});
+}
+
+/**
+ * 获取表格的查询条件
+ * @param table 需要获取查询条件的表格元素
+ * @returns
+ */
+function getDataTableQueryParams(table){
+	if(table && $(table).data("searchKey") ){
+		return $(table).data("searchKey");
+	}else{
+		return {};
+	}
+}
+
+/**
+ * 初始化高级查询空间数据
+ * @param actionId	当前动作id
+ * @param queryKey	页面查询组件key值
+ * @param table		表格jquery对象（该表格需要是datatable对象）
+ */
+function initHighQuery(actionId,queryKey,table){
+	var loader = new DataLoader(window.location.pathname, pageMeta);
+	var searchModel = loader.search(actionId);
+	$("#"+queryKey).attr("opts", JSON.stringify(searchModel.searchMeta.controls));
+	$("#"+queryKey).attr("builderlist", JSON.stringify(searchModel.searchMeta.builderLists));
+	$("#"+queryKey).on("search_click", function(e){
+		var search_item = e.originalEvent.detail.searchValue;
+		//处理标签，解决点击搜索时，标签不起作用
+		highQueryLaber(search_item);
+		var param = {"querySetting":JSON.stringify(search_item)};
+		table.data("searchKey", param);
+		table.DataTable().ajax.reload();
+	});
+}
+
+/**
+ * 处理标签，解决点击搜索时，标签不起作用
+ * @param search_item	传入查询条件
+ */
+function highQueryLaber(search_item){
+	$("li a.label_selected").each(function(){
+		$item = $(this);
+		var serKey = $item.data("serkey");
+		var bqdm = $item.attr("bqdm");
+		if(serKey=="BQDM"){
+			var objt={"name":serKey,"value":","+bqdm+",","builder":"include","linkOpt":"AND"};
+			search_item.push(objt);
+		}else{
+			var objt={"name":serKey,"value":bqdm,"builder":"equal","linkOpt":"AND"};
+			search_item.push(objt);
+		}
+	});
+}
+
+/**
+ * 绑定自定义查询的动作
+ * @param button	按钮元素的jquery对象
+ * @param table		表格jquery对象（该表格需要是datatable对象）
+ */
+function bindButton(button,table){
+	$(button).on("click",function(){
+		var showCols = table.data("showCols");
+		var html="<div class='custom_chk_div'><ul class='colorCheckbox'>";
+		for(var index in showCols){
+			var o=showCols[index];
+			if(o.show){
+				html+="<li><input class='custom_chk' type='checkbox' cindex='"+o.index+"' index='"+index+"' name='custom_chk' data-labelauty='"+o.text+"' checked></li>";
+			}else{
+				html+="<li><input class='custom_chk' type='checkbox' cindex='"+o.index+"' index='"+index+"' name='custom_chk' data-labelauty='"+o.text+"' ></li>";
+			}
+		}
+		html+="</ul></div><div class='custom_clear'></div> ";
+		html+="<div class='custom_button'><button class='bh-btn bh-btn-primary ' id='custom_all'>全选</button>"
+			+"<button class='bh-btn bh-btn-primary ' id='custom_backall'>反选</button></div>";
+		
+		var offset = $(button).offset();
+		layer.open({
+			type: 1,
+		    title:false,
+		    shift:1,
+		    area:(document.body.clientWidth-300)+"px",
+		    skin: 'layui-layer-rim', //加上边框
+		    offset: [offset.top+"px","150px"],
+		    shadeClose:true,
+		    content: html
+		});
+		$('.custom_chk_div input').labelauty();
+		$("#custom_all").on("click",function(){
+			$(".custom_chk").each(function(){
+				if(!$(this)[0].checked){
+					$(this)[0].click();
+				}
+			});
+		});
+		$("#custom_backall").on("click",function(){
+			$(".custom_chk").each(function(){
+				$(this)[0].click();
+			});
+		});
+		$(".custom_chk").on("click",function(){
+			var cindex=$(this).attr("cindex");
+			var index=$(this).attr("index");
+			var column = table.DataTable().column(cindex);
+			if(this.checked){
+				showCols[index].show=true;
+				 column.visible(true);
+			}else{
+				showCols[index].show=false;
+				 column.visible(false);
+			}
+		});
+	});
+}
+
+/**
+ * 获取datatables默认展现的数据（不包扩自定义的列，通过data=null来判断）
+ * @param custom_columns
+ * @param tableDom
+ * @param button
+ */
+function getCustomFields(custom_columns,tableDom,button){
+	var columns=custom_columns;
+	var showCols = [];
+	for(var index in columns){
+		var column=columns[index];
+		var o = {};
+		if(column.data!=null && (typeof(column.visible)=="undefined" || column.visible)){
+			o["id"]=column.data;
+			o["show"]=true;
+			o["text"]=column.title;
+			o["index"]=index;
+			showCols.push(o);
+		}
+	}
+	tableDom.data("showCols", showCols);
+	bindButton(button,tableDom);
+}
+
+
+/**
+ * 根据查询动作获取DataTable的column
+ * @param pageMeta 当前页面Meta信息
+ * @param actionName 动作名称
+ * @param addcolumns 操作列信息
+ * @param position 操作列位置 first表头、last表尾
+ * @param checkbox 是否勾选框 true需要、false不需要
+ * @return  修改后的模型或原始模型
+ */
+function getColumnsByAction(pageMeta,actionName,addcolumns,position,checkbox) {
+	var columns =[];
+	//表头勾选框
+	if(checkbox == undefined || (checkbox && checkbox == true)){
+		var checkboxtmp = { "data": null,
+				"orderData":false,
+				"sTitle":"<div class='checkbox'> <label> <input type='checkbox' id='allselect'> <i class='input-helper'></i> </label></div>",
+				render:function(){return "<div class='checkbox'> <label> <input type='checkbox' name='chk'> <i class='input-helper'></i> </label></div>";}
+	    };
+		columns.push(checkboxtmp);
+	}
+	//操作列添加到表头
+	if(addcolumns && (!position || (position && position == 'first'))){
+		var columnsfirst = addcolumns;
+		columns.push(columnsfirst);
+	}
+	//获取数据列
+	for(var i=0;i<pageMeta.models.length;i++){
+		if(pageMeta.models[i].name == actionName){
+			for(var obj in pageMeta.models[i].controls){
+				var tmpobj = pageMeta.models[i].controls[obj];
+				if(!tmpobj.hidden || (tmpobj.hidden && tmpobj.hidden=="false")){
+					if(tmpobj.url){//字典类型
+						var data = {"sTitle":tmpobj.caption,"data":tmpobj.name+'_DISPLAY'};
+						columns.push(data);
+					}else{
+						var data = {"sTitle":tmpobj.caption,"data":tmpobj.name};
+						columns.push(data);
+					}
+				}
+			}
+		}
+	}
+	//操作列添加到表尾
+	if(addcolumns && (position && position == 'last')){
+		var columnslast = addcolumns;
+		columns.push(columnslast);
+	}
+	return columns;
+}
+/**
+ * 根据查询动作获取DataTable的column
+ * @param pageMeta 当前页面Meta信息
+ * @param actionName 动作名称
+ * @param addcolumns 操作列信息
+ * @param position 操作列位置 first表头、last表尾
+ * @param checkbox 是否勾选框 true需要、false不需要
+ * @param checkid 全选框id
+ * @param checkname 勾选框name
+ * @return  修改后的模型或原始模型
+ */
+function getColumns(el) {
+	var columns =[];
+	var checkid = el.checkid === undefined?'allselect':el.checkid;
+	var checkname = el.checkname === undefined?'chk':el.checkname;
+	//表头勾选框
+	if(el.checkbox && el.checkbox == true){
+		var checkboxtmp = { "data": null,
+				"orderData":false,
+				"sTitle":"<div class='checkbox'> <label> <input type='checkbox' id='"+checkid+"'> <i class='input-helper'></i> </label></div>",
+				render:function(){return "<div class='checkbox'> <label> <input type='checkbox' name='"+checkname+"'> <i class='input-helper'></i> </label></div>";}
+	    };
+		columns.push(checkboxtmp);
+	}
+	//操作列添加到表头
+	if(el.addcolumns && (!el.position || (el.position && el.position == 'first'))){
+		var columnstmp;
+		for(var i=0;i<el.addcolumns.length;i++){
+			columnstmp = el.addcolumns[i];
+			columns.push(columnstmp);
+		}
+	}
+	//获取数据列
+	for(var i=0;i<el.pageMeta.models.length;i++){
+		if(el.pageMeta.models[i].name == el.actionName){
+			for(var obj in el.pageMeta.models[i].controls){
+				var tmpobj = el.pageMeta.models[i].controls[obj];
+				if(!tmpobj.hidden || (tmpobj.hidden && tmpobj.hidden=="false")){
+					if(tmpobj.url){//字典类型
+						var data = {"sTitle":tmpobj.caption,"data":tmpobj.name+'_DISPLAY'};
+						columns.push(data);
+					}else{
+						var data = {"sTitle":tmpobj.caption,"data":tmpobj.name};
+						columns.push(data);
+					}
+				}
+			}
+		}
+	}
+	//操作列添加到表尾
+	if(el.addcolumns && (el.position && el.position == 'last')){
+		var columnstmp;
+		for(var i=0;i<el.addcolumns.length;i++){
+			columnstmp = el.addcolumns[i];
+			columns.push(columnstmp);
+		}
+	}
+	//全选反选
+	$(document).on("click", "#"+checkid, function() {
+		$("[name='"+checkname+"']").prop("checked", this.checked);
+	});
+	$(document).on("click", "[name='"+checkname+"']", function() {
+		$("#"+checkid).prop("checked",$("[name='"+checkname+"']:checked").size() == $("[name='"+checkname+"']").size());
+	});
+	return columns;
+}
+/**
+ * 创建表格
+ * @param id
+ * @param el
+ * @returns
+ */
+function createTable(id,el){
+	var datatable=$('#'+id).DataTable( {
+	    "dom" : '<"top">rt<"bottom"ip><"clear">',//是否取消抬头的页面显示数量以及查询组件
+		"ordering":  el.ordering === undefined?true:el.ordering,//是否排序
+		"bPaginate" : el.bPaginate === undefined?true:el.bPaginate,// 分页按钮
+		"aLengthMenu": el.aLengthMenu === undefined?[15, 25, 50, "All"]:el.aLengthMenu,
+		"oLanguage" : { //主要用于设置各种提示文本
+			"sProcessing" : "正在处理...", //设置进度条显示文本
+			"sLengthMenu" : "",//显示每页多少条记录
+			"sEmptyTable" : "没有找到记录",//没有记录时显示的文本
+			"sZeroRecords" : "没有找到记录",//没有记录时显示的文本
+			"sInfo" : "总记录数_TOTAL_条     当前显示_START_至_END_条",
+			"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",//没记录时,关于记录数的显示文本
+			"sInfoFiltered": "",//"(由 _MAX_ 项结果过滤)",//
+			"sSearch" : "",//搜索框前的文本设置
+			"oPaginate" : {		
+			"sNext" : "下页",
+			"sPrevious" : "上页"
+			}
+		},
+		//"data":el.data,
+		"serverSide": true,
+		"columns":el.columns,
+//		,pageLength:5,
+		"ajax": function(data, callback, setting){
+			
+	        var loader = new DataLoader(window.location.pathname, el.pageMeta);
+	        var iStart = data.start?data.start:0;
+	        var iLength = data.length?data.length:setting._iDisplayLength;
+	        var iPageNumber = iStart/iLength + 1;
+	        
+	        var params = {pageSize:iLength, pageNumber:iPageNumber};
+	        if(this.data("searchKey") !== undefined){
+	        	$.extend(params, this.data("searchKey"));
+	        }
+			var ds = loader.data(el.action, params);
+			
+	        callback({data:ds, recordsFiltered:loader.total});
+		}
+
+	});
+	return datatable;
+}
+//form表单
+function buildform(formDOm,actionId,data, isread){
+	"use strict";
+	$(formDOm).html("");
+	var loader = new DataLoader(window.location.pathname);
+	loader.init();
+	var inputModel = loader.model(actionId);//得到列表的名字
+	$(formDOm).append( Utils.buildForm(inputModel,data,isread));
+	formControls.init($("form.validates"), "");
+}
+/***
+ * 生成应用的调用ajax调用路径
+ * @param path
+ * @returns {String}
+ */
+function ajaxsyspath(path){
+	return contextPath+"/sys/"+appName+"/"+path;
+}
+/**
+ * 
+ * @param url			ajax地址
+ * @param params		参数
+ * @param callback		执行成功的回调函数
+ * @param callBackAll	true 表示callback回调函数将直接获取data进行解析
+ */
+function ajaxaction(url,params,callback,callBackAll){
+	var ret = {};
+	$.ajax({
+		url:url.slice(-3)==".do"?url:url+".do",
+		type:'post',
+		dataType:'json',
+		data:params,
+		async:false,
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			if(callback!=undefined){
+				BhDialog('系统异常，请联系管理员！','','warning',{});
+			}
+         },
+		success:function(data){
+			if(callBackAll && callBackAll===true){
+				callback(data);
+			}else{
+				if(callback!=undefined){
+					if(data.code==0){
+						callback(data);
+					}else{
+						BhDialog('系统异常，请联系管理员！','','warning',{});
+						return;
+					}
+				}else{
+					ret = data;
+				}
+			}
+		}
+	});
+	return ret;
+}
+/**
+ * ajax请求,使用Query方式,直接返回数值
+ * @param url
+ * @param params
+ * @returns {}
+ */
+function ajaxQuery(url,params,name) {
+	var rData = "";
+	$.ajax({
+		url:url.slice(-3)==".do"?url:url+".do",
+		type : 'post',
+		dataType : 'json',
+		data : params,
+		async : false, // 默认为true 异步
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			BhDialog("获取数据失败!","","warning",{});
+			return;
+		},
+		success : function(data) {
+			if (data.code == 0) {
+				if(name && name!=""){
+					rData = data.datas[name].rows;
+				}else{
+					rData = data;
+				}
+			} else {
+				BhDialog("数据获取异常!","","warning",{});
+				return;
+			}
+		}
+	});
+	return rData;
+}
+
+/**
+ * ajax请求
+ * @param url
+ * @param params
+ * @returns {}
+ */
+function ajaxQueryFun(url,params,name,successfun,async,timeout) {
+	$.ajax({
+		url:url.slice(-3)==".do"?url:url+".do",
+		type : 'post',
+		dataType : 'json',
+		data : params,
+		timeout:timeout ? timeout:1800000, 
+		async : async ? async:true, // 默认为true 异步
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			BhDialog("获取数据失败!","","warning",{});
+			return;
+		},
+		success : function(data) {
+			if (data.code == 0) {
+				if(name && name!=""){
+					successfun(data.datas[name].rows);
+				}else{
+					successfun(data);
+				}
+			} else {
+				BhDialog("数据获取异常!","","warning",{});
+				return;
+			}
+		}
+	});
+}
+
+/**
+ * 获取表单数据
+ */
+function getFormData(formid){
+	var rdata= {};
+	var fixContent=["TBRQ","TBLX","CZRQ","CZZ","CZZXM","WID"];
+	var val=$("#"+formid).serializeArray();
+	for(var i=0;i<val.length;i++){
+		if(fixContent.toString().indexOf(val[i].name)>-1&&val[i].value==''){
+			continue;
+		}
+		rdata[val[i].name]=val[i].value;
+	}
+	return rdata;
+}
+/**
+ * swal操作
+ * @param title
+ * @param text
+ * @param type
+ * @param surefunction
+ */
+function swalaction(title,text,type,surefunction){
+	swal({
+		 title: title?title:"提示",  
+		 text: text,    
+	     html:true,
+		 type: type,   
+	     showCancelButton: true, 
+	     cancelButtonText:"取消",
+	     confirmButtonColor: "#2e8ded",   
+	     confirmButtonText: "确定",  
+	     closeOnConfirm: false
+	     },
+	     function(){
+	    	 surefunction();
+	 });
+}
+/**
+ * 延时的swal
+ */
+function swall(title,text,type,timer){
+	swal({
+		 title: title,  
+		 text: text,    
+	     html:false,
+		 type: type,   
+	     showCancelButton: false, 
+	     confirmButtonColor: "#2e8ded",   
+	     confirmButtonText: "确定",  
+	     timer:timer ? timer:3000,
+	     closeOnConfirm: true
+	     }
+	   );
+}
+/**
+ * exportfn
+ * @param el
+ */
+function exportfn(el){
+		var url = el.contextPath +"/sys/emapcomponent/imexport/export.do";
+		var params = {};
+		params['app'] = el.app;
+		params['module'] = el.module?el.module:'*default';
+		params['page'] = el.page;
+		params['action'] = el.action;
+		if(el.querySetting){
+			params["querySetting"] = el.querySetting;
+		}
+		jQuery.ajax({
+			url:url,
+			data:params,
+			type:'post',
+			dataType:'json',
+			cache:false,
+			success:function(ret){
+				var attachment = ret.attachment;
+				var url = el.contextPath + "/sys/emapcomponent/file/getAttachmentFile/" + attachment +".do";
+				window.location.href= url;
+				return false;
+			},
+			error:function(){
+				alert('false');
+			}
+		});
+}
+/**
+ * 高级查询
+ * @param url
+ * @param id
+ * @param tablename
+ * @param tableid
+ */
+//function search(url,id,tablename,tableid){
+//	$.getJSON(contextPath + "/sys/ssrcglapp/*default/"+url+"?*searchMeta=1", function(data){
+//	    $("#"+id).attr("opts", JSON.stringify(data.searchMeta.controls));
+//	    $("#"+id).attr("builderlist", JSON.stringify(data.searchMeta.builderLists));
+//	});
+//	$("#"+id).on("search_click", function(e){
+//		var search_item = e.originalEvent.detail.searchValue;
+//		var param = $("#"+tableid).data("searchKey");
+//		delete param['querySetting'];
+//		if(param){
+//			if(search_item.length != 0){
+//				param["querySetting"] = JSON.stringify(search_item);
+//			}
+//		}else{
+//	
+//				param["querySetting"] = JSON.stringify(search_item);
+//			
+//		}
+//		$("#"+tableid).data("searchKey", param);
+//		tablename.ajax.reload();
+//		});
+//	}
+
+/***
+ * 调用存储过程2015-12-03
+ * 使用动态参数：第1个参数为存储过程名称,名称后跟0-N个输入参数-输入参数类型为字符串,输出参数不指定
+ * 可指定同步运行还是异步运行,传入参数true-异步,false-同步,位置随意
+ * 可指定回调函数,位置随意
+ * 如果不指定回调函数,函数返回值为JSON格式,包括存储过程的输出参数值,使用时需要根据大写的输出参数名获取输出参数值
+ */
+function jwCallProcedure(){
+	var json={};
+	var data=[];
+	if(arguments.length<1){
+		return;
+	}
+	var fun_success;
+	var fun_error;
+	var isasync=false;//默认为false同步运行
+	var j=0;
+	json["procName"]=arguments[0];
+	for(var i=1;i<arguments.length;i++){
+		if(typeof(arguments[i])=='function'){
+			if(fun_success==undefined){
+				fun_success=arguments[i];
+			}else{
+				fun_error=arguments[i];
+			}
+		}else if(typeof(arguments[i])=='boolean'){
+			isasync=arguments[i];
+		}else{
+			data[j]=arguments[i];
+			j=j+1;
+		}
+	}
+	json["procData"]=JSON.stringify(data);
+	var ret;
+	$.ajax({
+		url:contextPath + "/sys/jwpublic/callProcedure.do",
+		type:'post',
+		dataType:'json',
+		data:json,
+		async:isasync,
+		timeout:6000000,
+		success:function(data){
+			ret=data;
+			if(fun_success!=undefined){
+				fun_success(data);
+			}
+		},
+		error:function(data){
+			ret=data;
+			if(fun_error!=undefined){
+				fun_error(data);
+			}
+		}
+	});
+	return ret;
+}
+
+/**
+ * 获取数据角色列表
+ */
+function getDataRoles(){
+	var ret ="";
+	$.ajax({
+		url:"../../jwpublic/getDataRoles.do",
+		type:'post',
+		dataType:'json',
+		data:{},
+		async:false,
+		timeout:6000000,
+		success:function(data){
+			ret = data;
+		},
+		error:function(data){
+			ret = "";
+		}
+	});
+	return ret;
+}
+
+/**
+ * 获取流程信息
+ * @param sqbh
+ */
+function getLcxx(sqbh,path){
+	var cpath = "";
+	if(path && path!=""){
+		cpath = path;
+	}else{
+		cpath = contextPath;
+	}
+	var ret ="";
+	$.ajax({
+		url:cpath + "/sys/jwpublic/getLcxx.do",
+		type:'post',
+		dataType:'json',
+		data:{"sqbh":sqbh},
+		async:false,
+		timeout:6000000,
+		success:function(data){
+			ret = data;
+		},
+		error:function(data){
+			ret = "";
+		}
+	});
+	return ret;
+}
+
+/**
+ * 根据角色获取制定表的字段权限
+ */
+function getPermissionModel(dataRole,tname){
+	var ret ="";
+	$.ajax({
+		url:"../../jwpublic/getPerMissinoModel.do",
+		type:'post',
+		dataType:'json',
+		data:{"dataRole":dataRole,"tname":tname},
+		async:false,
+		timeout:6000000,
+		success:function(data){
+			ret = data;
+		},
+		error:function(data){
+			ret = "";
+		}
+	});
+	return ret;
+}
+
+
+//先修课程
+//注意该操作只能用于先修课程
+function bindXxkc(){
+	$("input[name=XXKC]").on("click",function(){
+		//弹出课程选择窗
+		layer.open({
+			title:"课程选择",
+		    type: 2,
+		    area: ['900px','600px'],
+		   // fix: false, //不固定
+		    maxmin: true,
+		    content: 'kcxxxz.do?ver=1#/KC_SELECT'
+		});
+	});
+}
+
+/**
+ * 通过数据角色id，获取数据角色名称
+ * @param role
+ */
+function getDataRoleName(role){
+	var dataRoles = getDataRoles();
+	for(var i=0;i< dataRoles.length;i++){
+		if(dataRoles[i].id && dataRoles[i].id==role){
+			return dataRoles[i].name;
+		}
+	}
+	return "";
+}
+
+/**
+ * 移除没有修改的字段
+ * @param newData
+ * @param oldData
+ * @param zds 不需要过滤的字段
+ */
+function removeSameData(newData,oldData,zds){
+	for(var key in newData){
+		if(oldData[key] && newData[key]==oldData[key] && key!="WID"){
+			var isDel = true;
+			if(zds && typeof(zds)=="Array"){
+				for(var i=0;i< zds.length;i++){
+					if(zds[i]==key){
+						isDel = false;
+						break;
+					}
+				}
+			}
+			if(isDel)
+				{delete newData[key];
+				}
+		}
+	}
+}
+
+/**
+ * 加载下拉框
+ * @param id					select标签id
+ * @param actionUrl				动作地址
+ * @param action				动作id
+ * @param idAndMc				值和名称
+ * @param param					查询条件
+ * @param placeholder			占位文字
+ * @param selectValue			默认选中值
+ */
+function loadSelectOpions(id,actionUrl,action,idAndMc,param,placeholder,selectValue){
+	var $item = $("#"+id);
+	//移除所有的option
+	$item.empty();
+	//select默认的占位文字
+	if(placeholder && placeholder!=""){
+		var option = $("<option>").val("").text(placeholder);
+		$item.append(option);
+	}
+	if(idAndMc && idAndMc.indexOf(",")>0 && idAndMc.indexOf(",")<idAndMc.length-1){
+		//获取数据
+		var datas = ajaxQuery(actionUrl,param,action);
+		if(datas && datas.length>0){
+			//值列
+			var keyCol = idAndMc.split(",")[0];
+			//名称列
+			var valueCol = idAndMc.split(",")[1];
+			for(var i=0;i< datas.length;i++){
+				var data = datas[i];
+				var option="";
+				if(selectValue && selectValue==data[keyCol]){
+					option='<option value="'+data[keyCol]+'" selected>'+data[valueCol]+'</option>';
+				}else{
+					option='<option value="'+data[keyCol]+'" >'+data[valueCol]+'</option>';
+				}
+				$item.append(option);
+			}
+		}
+	}
+}
+
+/**
+ * 加载下拉框，jqx
+ * @param id
+ * @param actionUrl
+ * @param param
+ * @param placeholder
+ */
+function loadItems(id,actionUrl,placeholder){
+	var $item = $("#"+id);
+	var dataAdapter = new $.jqx.dataAdapter({
+        url: actionUrl,
+        datatype: "json",
+        async : false,
+        formatData:function(data){
+            if($item.data('jsonparam')){
+                data = $item.data('jsonparam');
+            }
+            return data;
+        },
+        root : "datas>code>rows"
+    });
+//	$item.jqxDropDownList({
+//        placeHolder : "--请选择--",
+//        source: dataAdapter,
+//        displayMember:"name",
+//        valueMember:"id",
+//        filterable : true,
+//        width : "100%",
+//        disabled : $item.data('disabled') ? true : false
+//    });
+//	var item = $item.jqxDropDownList('getItem',0);
+//	if(item && item.value) 
+//		$item.jqxDropDownList('insertAt', {label:"--请选择--",value:''}, 0);
+	renderDropItem(id, dataAdapter);
+}
+/**
+ * 多次重复利用缓存的source渲染下拉框,是id的选择器的时候同时将name属性渲染上
+ * @param id
+ * @param source
+ * @param placeholder
+ */
+function renderDropItem(id, source, $Obj){
+	var $item = $Obj || $("#"+id);
+	$item.jqxDropDownList({
+        placeHolder : "--请选择--",
+        source: source,
+        displayMember:"name",
+        valueMember:"id",
+        filterable : true,
+        width : "100%",
+        disabled : $item.data('disabled') ? true : false
+    });
+	var item = $item.jqxDropDownList('getItem',0);
+	if(item && item.value) 
+		{
+			$item.jqxDropDownList('insertAt', {label:'--请选择--',value:''}, 0);
+		}
+	if(id) 
+		{		
+		$item.find('input[type="hidden"]').attr('name',id);
+		}
+}
+
+
+/**
+ * 根据返回值，提示信息
+ * @param text		操作名称
+ * @param data		返回值
+ * @param action	动作
+ * @param type		操作类型
+ */
+function swallData(text,data,action,type,search){
+	if(typeof(text)=="undefined" || text==""){
+		text == "操作";
+	}
+	var mxxx ="";
+	var bol=false;
+	if(type && type=="KCBG"){
+		if(data && data.code=="0"){
+			var rev = data.datas[action][0];
+			if(rev=="success"){
+				bol=true;
+			}else{
+				if(rev=="error-noparam"){
+					mxxx="缺少参数";
+				}else if(rev=="error-courseConflict"){
+					mxxx="已存在该课程信息";
+				}else if(rev=="error-require"){
+					mxxx="缺少必填信息";
+				}else if(rev=="error-sherrr"){
+					mxxx="审核操作失败";
+				}else if(rev=="error-haswait"){
+					mxxx="该课程已有待审核变更记录";
+				}else if(rev=="error-noper"){
+					mxxx="没有该操作权限";
+				}else if(rev=="error-overtime"){
+					mxxx="不在新开课申请时间范围内";
+				}else if(rev=="error-errorkch"){
+					mxxx="生成课程号失败";
+				}
+			}
+		}
+	}else{
+		if(data && data.code=="0"){
+			bol=true;
+		}
+	}
+	if(bol){
+		if(search){
+			search();
+		}
+		BhDialog(text+"成功","","success",{});
+		$.bhPaperPileDialog.hide();
+	}else{
+		BhDialog(text+"失败",mxxx,"danger");
+	}
+}
+
+/**
+ * 给代码值添加说明
+ * @param oldData
+ * @param data
+ */
+function addMxsm(oldData,data){
+	for(var key in data){
+		var oldKey = key+"_DISPLAY";
+		data[oldKey+"_OLD"]=oldData[oldKey];
+		data[oldKey+"_NEW"]=$("input[name="+key+"]").attr("displayvalue");
+	}
+}
+
+
+/**
+ * 给jqxDateTimeInput加上name属性，方便form获取表单整体值
+ */
+function iDateTimeInput(id){
+	$('#'+id).jqxDateTimeInput({width: "100%",formatString: "yyyy-MM-dd HH:mm:ss",culture: 'zh-CN',showTimeButton: true,readonly: true});
+	$('#input'+id).attr('name',id);
+}

@@ -1,0 +1,231 @@
+define(function(require) {
+
+  var utils = require('utils');
+  var bs = require('./kblbBS');
+  var self = '';
+  var parentParam = {};
+  var viewConfig = {
+	  initialize: function(param) {
+		  self = this;
+		  parentParam = param;
+		  var indexView = utils.loadCompiledPage('kblbIndexPage', require);
+		  $.bhPaperPileDialog.show({
+			  content: indexView.render({XNXQMC: param.xnxqmc}),
+			  ready: function(){
+				  self.initAdvancedQueryAndTable();  
+			  }
+	      });
+		  
+		  this.eventMap = {
+				  '[data-action="kblb导出"]': this.actionExport
+		  };
+	  },
+	  
+	  initAdvancedQueryAndTable: function(){
+		  $.publicDatatableWithExport({
+			 	pagePath:  parentParam.pageModel, //必传
+			 	action: parentParam.action, //必传
+		 	    params: {
+		 	    	XNXQDM: parentParam.xnxqdm
+		 	    },
+		 	    customColumns: this.getCustomColumns(),
+		 	    extraParam: {
+		 	    	queryDom: '.kblb-index-search',
+		 	    	tableDom: '.kblb-index-table', //必传
+		 	    	getSearchCallBackParam: function(){ //搜索回调所需的额外参数
+		 	    		return {
+		 	    			XNXQDM: parentParam.xnxqdm
+		 	    		};
+		 	    	},
+		 	    	getJsonData: function(){ //导出所需的jsonData
+		 	 	  		return [{
+		 	 	  			XNXQDM: parentParam.xnxqdm
+		 	 	  		}];
+		 	 	  	},
+		 	    	orderColumn: "+XH,+KCH,+KXH,+SKXQ,+KSJC",  //排序字段
+		 	    	fileName: '课表', //导出文件名
+		 	    	appName: 'wdkb', //app名
+		 	    	hasZdyl: false, //是否需要自定义列功能,默认true
+		 	    	hasExport: false, //是否需要导出功能, 默认true
+		 	    	searchType: 'emapFilterQuery' //搜索类型，默认高级搜索
+		 	    }
+			});	
+	  },
+	  
+	  getCustomColumns : function() {
+		  var customColumns = [{
+			  colIndex: '0',
+			  type: 'checkbox',
+   			  pinned:true
+	      }, {
+              colField: 'KCM',
+              type: 'tpl',
+              column: {
+                  width: 130,
+                  align: 'center',
+                  pinned: true,
+                  cellsalign: 'center',
+                  cellsRenderer: function(row, column, value, rowData) {
+                      if (rowData.TYXMDM == null || rowData.TYXMDM == "null" || rowData.TYXMDM.length == 0) {
+                          return "<span  title=" + rowData.KCM + ">" + rowData.KCM + "</span>";
+                      } else {
+                          var str = rowData.KCM + "(" + rowData.TYXMDM_DISPLAY + ")";
+                          return "<span  title=" + str + ">" + str + "</span>";
+                      }
+                  }
+              }
+          }];
+		  return customColumns;
+	  },
+      actionExport: function(e) {
+          var $dom = $(e.currentTarget);
+          if ($dom.attr('data-disabled') == '1') {
+              $.bhTip({
+                  content: '30s内不允许多次导出'
+              });
+              return false;
+          }
+          var setting = $('.kblb-index-search').emapFilterQuery('getValue');
+          var selectItems = $(".kblb-index-table").emapdatatable("checkedRecords");
+          if(selectItems.length > 0){//勾选了
+          	var wid = '';
+          	$.each(selectItems,function(index,obj){
+          		wid += obj.WID+',';
+          	});
+          	setting = JSON.parse(setting);
+          	setting.push({
+      			name: 'WID',
+          		value: wid.slice(0,-1),
+          		linkOpt:'AND',
+          		builder: 'm_value_equal'
+          	});
+          	setting = JSON.stringify(setting);
+          	
+          }
+          $dom.attr('data-disabled', '1');
+          var fieldName = [];
+          var fieldCodeTmp = [];
+          var visibleColumns = $('.kblb-index-table').emapdatatable('getVisibleColumns');
+          $.each(visibleColumns, function(colIndex, colObj) {
+              if (colObj.datafield && colObj.datafield != 'field_checkbox') {
+                  fieldCodeTmp.push(colObj.datafield.split('_')[0]);
+                  fieldName.push(colObj.text);
+              }
+          });
+          var params = {
+              querySetting: setting,
+              captions: fieldName.join(","),
+              colnames: fieldCodeTmp.join(","),
+              order:'+XH,+KCH,+KXH,+SKXQ,+KSJC',
+              checkType: parentParam.action,
+              XNXQDM: parentParam.xnxqdm
+          };
+          $.ajax({
+              url: WIS_EMAP_SERV.getContextPath() + "/sys/wdkb/export/exportWdkbList.do",
+              data: params,
+              type: 'post',
+              dataType: 'json',
+              cache: false,
+              success: function(ret) {
+                  var result = JSON.parse(ret);
+                  if (result.code == 1) {
+                      self.actionLoadingWindow(result.filename);
+                  } else {
+                      $.bhTip({
+                          state: "danger",
+                          content: result.message
+                      });
+                  }
+              },
+              error: function(resp) {
+                  $.bhTip({
+                      state: "danger",
+                      content: resp
+                  });
+              }
+          });
+
+          setTimeout(function() {
+              $dom.attr('data-disabled', '0');
+          }, 30000);
+      },
+      actionLoadingWindow: function(filename) {
+          utils.window({
+              title: '导出进度',
+              width: '390px',
+              height: '280px',
+              content: '<div class="znksap-window-content bh-text-center"><div class="znksap-window-load"></div><div class="znksap-window-title bh-pv-8">正在导出,请稍后</div></div>',
+              buttons: [],
+              params: {
+                  close: function() {
+                      clearInterval(tmpInterval);
+                  }
+              }
+
+          });
+          $(".znksap-window-content").closest('.jqx-widget-content.jqx-window').find('.jqx-icon-close').hide();
+          self.initLoadingNum();
+          self.initPercentFirst(filename);
+      },
+
+      initLoadingNum: function() {
+          $('.znksap-window-load').radialIndicator({
+              barColor: '#2196f3',
+              barBgColor: '#d3eafd',
+              barWidth: 8,
+              fontColor: '#333',
+              radius: 58,
+              roundCorner: true,
+              percentage: true
+          });
+          radialObj = $('.znksap-window-load').data('radialIndicator');
+          radialObj.animate(0);
+      },
+
+      initPercentFirst: function(filename) {
+          var time = 3000;
+          var self = this;
+          var lastwcl = 0; //上次完成率
+          tmpInterval = setInterval(function() {
+              bs.queryZxjd("WDKB_" + filename).done(function(res) {
+                  if (res) {
+                      try {
+                          var result = res.datas.EMAP_SAPP_PROGRESS_QUERY.rows[0];
+                          if(result.ZS == 0){
+                          	clearInterval(tmpInterval);
+                          	 $('.znksap-window-title').html("<span style='color:red;'>无导出数据</span>");
+                          	 $(".znksap-window-content").closest('.jqx-widget-content.jqx-window').find('.jqx-icon-close').show();
+                          } else if (parseInt(result.YWCS) >= 0) { //正常情况
+                              lastwcl = parseInt(result.YWCS / result.ZS * 100);
+                              radialObj.animate(parseInt(result.YWCS / result.ZS * 100));
+                              if (parseInt(result.YWCS) >= parseInt(result.ZS) && result.WCZT == "1") {
+                                  $('.znksap-window-title').html(self.renderExportButton(filename));
+                                  clearInterval(tmpInterval);
+                                  $(".znksap-window-content").closest('.jqx-widget-content.jqx-window').find('.jqx-icon-close').show();
+                              }
+                          } else {
+                              $('.znksap-window-title').html("<span style='color:red;'>导出完毕</span>" + lastwcl + "<span style='color: red'>%</span>");
+                              clearInterval(tmpInterval);
+                              $(".znksap-window-content").closest('.jqx-widget-content.jqx-window').find('.jqx-icon-close').show();
+                          }
+                      } catch (err) {
+                          console.log(err);
+                          clearInterval(tmpInterval);
+                      }
+                  } else {
+                      clearInterval(tmpInterval);
+                      console.error('返回数据格式不对');
+                  }
+              });
+          }, time);
+      },
+
+      renderExportButton: function(filename) {
+          return '<span>导出完毕，<a style="cursor:pointer;" href=' + WIS_CONFIG.ROOT_PATH + '/sys/wdkb/export/downLoadExcel.do?fileName=' + filename + 
+          		'&dcName=' + encodeURI(encodeURI('我的课表')) + '>点击下载</a>（请尽快下载，超时无法下载）</span>';
+      }
+    
+  };
+
+  return viewConfig;
+});

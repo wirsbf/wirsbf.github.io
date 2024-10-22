@@ -1,0 +1,275 @@
+/**
+ * 公共JS
+ * 作者：01115238
+ * 时间：2016-11-02
+ * async
+ */
+
+;var JWCOMMON = {};
+
+(function (JWCOMMON) {  
+    /**
+     * warning弹窗
+     * common.js内部调用，不建议直接调用，请使用JWCOMMON.dialogWarning
+     */
+    JWCOMMON.dialogWarningExt = function (title, content, returnCode, exceptionId, showType) {
+        if ("1" == showType || 1 == showType) {
+            BH_UTILS.bhDialogWarning({
+                title: title,
+                content: content,
+                buttons: [{
+                    text: '确定',
+                    className: 'bh-btn-default'
+                }],
+                subContent: '异常码：' + returnCode + "</br>异常串行码：" + exceptionId
+            });
+        } else {
+            BH_UTILS.bhDialogWarning({
+                title: title,
+                content: content,
+                buttons: [{
+                    text: '确定',
+                    className: 'bh-btn-default'
+                }]
+            });
+        }
+    };
+
+    /**
+     * warning弹窗
+     * data 后台返回的resultJson
+     */
+    JWCOMMON.dialogWarning = function (title, data) {
+        JWCOMMON.dialogWarningExt(title, data.description, data.returnCode, data.exceptionId, data.showType);
+    };
+
+    /**
+     * 公共处理异常情况
+     * 不对外部提供
+     */
+    JWCOMMON.processError = function processError(resp, callBack) {
+        //2016-04-19 qiyu 未登录则刷新页
+        if (resp.status == 401) {
+            window.location.reload();
+        } else if (resp.status == 403) {
+            BH_UTILS.bhDialogWarning({
+                title: '提示',
+                content: '当前角色权限不足，请切换角色后重新操作',
+                buttons: [{
+                    text: '确认',
+                    className: 'bh-btn-warning',
+                    callback: function () {
+                    }
+                }]
+            });
+        }
+        // 长时间未操作提示错误
+        if (resp.statusText.indexOf("NetworkError") > -1) {
+            BH_UTILS.bhDialogDanger({
+                title: '网络错误',
+                content: '您可以尝试刷新页面解决该问题',
+                buttons: [{
+                    text: '关闭',
+                    className: 'bh-btn-default'
+                }]
+            });
+        }
+        if (callBack) {
+            callBack(null);
+        }
+    };
+
+    /**
+     * 同步调用(不建议直接调用该方法)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * async 异步标识 false为同步， true为异步
+     * 异步时请不要接收返回值，没有意义，请使用callBack处理
+     */
+    JWCOMMON.postSync = function postSync(url, jsonParam, callBack, async) {
+        //loading动画开启
+        $('.app-ajax-loading').jqxLoader('open');
+
+        var result = null;
+
+        $.ajax(
+            {
+                url: url,
+                type: 'post',
+                data: {"requestParamStr": JSON.stringify(jsonParam)},
+                async: async,
+                error: function (resp) {
+                    JWCOMMON.processError(resp, callBack);
+                    //loading动画关闭
+                    $('.app-ajax-loading').jqxLoader('close');
+                },
+                success: function (data) {
+                    result = data;
+                    if (null == data.code || undefined == data.code || data.code == 0 || data.code == 1) {
+                        if (callBack) {
+                            callBack(data);
+                        }
+                    } else if("#E2140100002" == data.code){
+                    	$.bhDialog({title: '请求参数存在非法内容！', iconType: 'warning'});
+                        result = null;
+                    } else{
+                        $.bhDialog({title: '后台数据异常，请联系管理员', iconType: 'warning'});
+                        result = null;
+                    }
+                    //loading动画关闭
+                    $('.app-ajax-loading').jqxLoader('close');
+                }
+            });
+
+        return result;
+    };
+
+    /**
+     * 同步调用,没有loading动画(不建议直接调用该方法)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * async 异步标识 false为同步， true为异步
+     * 异步时请不要接收返回值，没有意义，请使用callBack处理
+     */
+    JWCOMMON.postSyncNoLoading = function postSync(url, jsonParam, callBack, async) {
+        var result = null;
+
+        $.ajax(
+            {
+                url: url,
+                type: 'post',
+                data: {"requestParamStr": JSON.stringify(jsonParam)},
+                async: async,
+                error: function (resp) {
+                    JWCOMMON.processError(resp, callBack);
+                },
+                success: function (data) {
+
+                    result = data;
+                    if (null == data.code || undefined == data.code || data.code == 0 || data.code == 1) {
+                        // 不对结果处理，留给调用者自己处理
+                        if (callBack) {
+                            callBack(data);
+                        }
+                    } else if("#E2140100002" == data.code){
+                    	$.bhDialog({title: '请求参数存在非法内容！', iconType: 'warning'});
+                        result = null;
+                    } else {
+                        $.bhDialog({title: '后台数据异常，请联系管理员', iconType: 'warning'});
+                        result = null;
+                    }
+                }
+            });
+
+        return result;
+    };
+    /**
+     * 同步调用(不处理返回结果)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * 注：不对返回结果处理，需调用者自己处理
+     */
+    JWCOMMON.postSyncCustom = function postSync(url, jsonParam, callBack) {
+        return JWCOMMON.postSync(url, jsonParam, callBack, false);
+    };
+    /**
+     * 同步调用-无loading(不处理返回结果)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * 注：不对返回结果处理，需调用者自己处理
+     */
+    JWCOMMON.postSyncCustomNoLoading = function postSync(url, jsonParam, callBack) {
+        return JWCOMMON.postSyncNoLoading(url, jsonParam, callBack, false);
+    };
+    
+	/**
+	 * 异步调用(对结果自动处理)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * isSuccessTips 用于控制是否要进行成功提示
+	 * 异步时请不要接收返回值，没有意义，请使用callBack处理
+	 */
+	JWCOMMON.postAsyncAuto = function postSync(url, jsonParam, callBack){
+	    return JWCOMMON.postAsyncCustom(url, jsonParam, function(result){
+			if (!(result.code == "0" && result.data.code == "1")) {
+				BH_UTILS.bhDialogDanger({
+				    title:'错误！',
+				    content:result.msg?result.msg:result.data.msg,
+				    buttons:[{
+						    text: '确认',
+						    className: 'bh-btn-primary'
+					}]
+				});
+			} else {
+				callBack(result);
+			}
+	    });
+	};
+    /**
+     * 异步调用(不处理返回结果)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * 异步时请不要接收返回值，没有意义，请使用callBack处理
+     */
+    JWCOMMON.postAsyncCustom = function postSync(url, jsonParam, callBack) {
+        return JWCOMMON.postSync(url, jsonParam, callBack, true);
+    };
+    /**
+     * 异步调用-无loading(不处理返回结果)
+     * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+     * callBack 回调，可以不传
+     * 注：不对返回结果处理，需调用者自己处理
+     */
+    JWCOMMON.postAsyncCustomNoLoading = function postSync(url, jsonParam, callBack) {
+        return JWCOMMON.postSyncNoLoading(url, jsonParam, callBack, true);
+    };
+    /**
+     * 获取指定cookies
+     */
+    JWCOMMON.getCookieValue = function getCookieValue(cookieName) {
+        var name = escape(cookieName);
+        name += "=";
+        var allcookies = document.cookie;
+        var pos = allcookies.indexOf(name);
+        var value = "";
+        if (pos == -1) {
+            return value;
+        }
+        var cookie_arr = allcookies.split(";");
+        for (var i = 0; i < cookie_arr.length; i++) {
+            var index = cookie_arr[i].indexOf(name);
+            if (index >= 0) {
+                value = cookie_arr[i].substring(index + name.length);
+                break;
+            }
+        }
+        return unescape(value);
+    };
+    JWCOMMON.getUserCookie = function getCookieValue() {
+        return JWCOMMON.getCookieValue('_WEU');
+    };
+    /**
+     * 根据配置获取动作（pgsql/oracle兼容使用）
+     * */
+    JWCOMMON.getSuitableActionName = function getSuitableActionName(tag, oracleActionName, pgsqlActionName) {
+        return "pgsql" == tag ? pgsqlActionName : oracleActionName;
+    };
+    /**
+     * 合并对象，只合并原始对象有的属性（不支持嵌套合并）
+     * <pre>
+     *     var a={"k1":"v1","k2":"v2"};
+     *     var b={"k1":"v3","k4":"v4"};
+     *     JWCOMMON.mergeObject(a,b);
+     *     console.log(a);//输出{"k1":"v3","k2":"v2"}
+     * </pre>
+     * @param originObj 原始对象
+     * @param mergeObject 待合并对象
+     */
+    JWCOMMON.mergeObject = function mergeObject(originObj, mergeObject) {
+        $.each(originObj, function (key, val) {
+            if (mergeObject && mergeObject[key] !== undefined) {
+                originObj[key] = mergeObject[key];
+            }
+        });
+    };
+})(window.JWCOMMON = JWCOMMON);

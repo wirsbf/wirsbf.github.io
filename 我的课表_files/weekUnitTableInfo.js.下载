@@ -1,0 +1,561 @@
+(function(obj) {
+
+    /*if (typeof module !== 'undefined' && typeof exports === 'object' && define.cmd) {
+        module.exports = obj;
+    } else if (typeof define === 'function' && define.amd) {
+        define(function() {
+            return obj;
+        });
+    } else {
+        window.WeekUnitTableInfo = obj;
+    }*/
+    
+    window.WeekUnitTableInfo = obj;
+
+})((function($) {
+
+    var weekUnitTableInfo = function(opt) {
+        this.params = {
+            container: '', //容器
+            weeks: false, // 星期列表
+            units: false,
+            unitsSpread: false,
+            unitMode: undefined,
+            loadWeeksUrl: false,
+            loadUnitsUrl: false,
+            convertWeeksFunc: false, // 与loadWeeksUrl配合使用，用于通过ajax获取数据后，对数据进行转换的函数
+            convertUnitsFunc: false, // 与loadUnitsUrl配合使用，用于通过ajax获取数据后，对数据进行转换的函数
+            arranges: undefined, // 当前的课程安排列表
+            arrangeBgColor: undefined,
+            highLightWeeks: undefined //高亮显示的星期，code
+        };
+        this.colorWareHouse = [
+            '#FFF0CC',
+            '#FFDDD3',
+            '#D3EAFD',
+            '#D3F4F8',
+            '#E8F3DB',
+            '#DDE4FE',
+            '#FCE0EA',
+            '#CCEAE7',
+            '#FFEACC',
+            '#D8DCF0',
+            '#D9F2D9',
+            '#F9D9D6',
+            '#FFF5D7',
+            '#DBEEFD',
+            '#E8E0EB',
+            '#E3F4F2',
+            '#FADCD9',
+            '#FCEAD2',
+            '#CCF2F6',
+            '#DFF2D4'
+        ];
+
+        this.init(opt);
+    };
+
+    weekUnitTableInfo.prototype = {
+
+        init: function(opt) {
+            copyPropertyVal(opt, this.params);
+        },
+
+        render: function() {
+            var _weeks = this.getWeeks();
+            var _units = this.getUnits();
+            var _unitsSpread = this.getUnitsSpread();
+            var _unitMode = (typeof this.params.unitMode !== 'undefined' ? this.params.unitMode : 1);
+
+            _unitsSpread = this.preTreatmentUS(_units, _unitsSpread);
+
+            var _html = '<div class="wut_container">';
+            _html += '      <table class="wut_table" onselectstart="return false">';
+            _html += this.buildItemHtml(_weeks, _units, _unitsSpread, _unitMode);
+
+            _html += '      </table>';
+            _html += '  </div>';
+
+            $(this.params.container).html(_html);
+            //合并上午下午晚上
+            this.mergeUnitsSpread(_unitsSpread);
+            //高亮显示
+            this.highLightWeeks();
+        },
+
+
+        setResults: function(arranges, afterFn) {
+            var _this = this;
+
+            // 清除原有的dom元素
+            $('.mtt_arrange_item').remove();
+
+            // 如果参数arranges不为空，则重新赋值，并重新渲染课程对应的背景色
+            if (arranges !== undefined) {
+            	_this.params.arranges=[];
+				$(arranges).each(function(){
+					if(typeof this.beginUnit !='Number'){
+						this.beginUnit=parseInt(this.beginUnit);
+					}
+					if(typeof this.endUnit !='Number'){
+						this.endUnit=parseInt(this.endUnit);
+					}
+					_this.params.arranges.push(this);
+				});
+                _this.params.arrangeBgColor = this.initBgColor(arranges);
+            }
+
+            // 循环所有单元格
+            $('[data-role="item"]').each(function() {
+                var jItem = $(this);
+
+                var item_arranges = _this.findArrangesByWeekAndUnit(jItem.attr('data-week'), jItem.attr('data-begin-unit'), jItem.attr('data-end-unit'));
+                if (item_arranges.length > 0) {
+                    var height = 98 / item_arranges.length;
+
+                    for (var i = 0; i < item_arranges.length; i++) {
+                        var arrange = item_arranges[i];
+
+                        // 构建课程安排结果渲染内容
+                        var html = '<div class="mtt_arrange_item ' + (arrange.tzkc ? 'mtt_tzkc' : '') + '" style="background-color:' + _this.params.arrangeBgColor[arrange.kcdm] + '">';
+                        html += '       <div class="mtt_item_tzkcicon">';
+                        html += (arrange.tzkc ? '           <img src="../public/images/u422.png">' : '');
+                        html += '       </div>';
+                        if(arrange.KBLB == '2'){
+                        	html += '       <div class="mtt_item_kcmc">' +arrange.ms+'</div>';
+                        }else{
+                            if(arrange.kcmc!=null && arrange.kxh !=null && arrange.kxh !='' && arrange.kcmc!='' && typeof(arrange.kcmc) != "undefined" && typeof(arrange.kxh) != "undefined"){
+                            	html += '       <div class="mtt_item_kcmc">' +arrange.kcdm+'&nbsp;'+ arrange.kcmc +'[' + arrange.kxh + ']'+'</div>';
+                            }
+                        }
+                        if(arrange.weekName!=null && arrange.weekName!='' && typeof(arrange.weekName) != "undefined"){
+                        	html += '       <div>' + arrange.weekName + '</div>';
+                        }
+                        if(arrange.teacherName!=null && arrange.teacherName!='' && typeof(arrange.teacherName) != "undefined"){
+                        	html += '       <div class="mtt_item_jxbmc">' + arrange.teacherName + '</div>';
+                        }
+                        if(arrange.beginUnit!=null && arrange.beginUnit!='' && typeof(arrange.beginUnit) != "undefined" && arrange.endUnit!=null && arrange.endUnit!='' && typeof(arrange.endUnit) != "undefined"){
+                        	 if(arrange.classroomName!=null && arrange.classroomName!='' && typeof(arrange.classroomName) != "undefined"){
+                             	html += '       <div class="mtt_item_room">'+arrange.classroomName + '</div>';
+                             }
+                        }
+                        if(arrange.className!=null && arrange.className!='' && typeof(arrange.className) != "undefined"){
+                         	html += '       <div class="mtt_item_class" title="' + arrange.className + '">'+arrange.classNameCut + '</div>';
+                        }
+                        
+                        html += '   </div>';
+                        jItem.append(html);
+                    }
+                }
+            });
+
+
+            if (typeof afterFn === 'function') {
+                afterFn();
+            }
+        },
+
+        /**
+         * 根据星期、节次、节次模式构建教学班课表单元的HTML内容
+         * @param  {[type]} weeks    [description]
+         * @param  {[type]} units    [description]
+         * @param  {[type]} unitMode [description]
+         * @return {[type]}          [description]
+         */
+        buildItemHtml: function(weeks, units, unitsSpread, unitMode) {
+
+            var avgWidth = Math.round(92 / weeks.length);
+
+            // 构建header
+            var _html = '<tr>';
+            _html += '      <td class="mtt_bgcolor_grey" colspan=2>节次/星期</td>';
+            for (var i = 0; i < weeks.length; i++) {
+                var _w = weeks[i];
+                _html += '  <td class="mtt_bgcolor_grey" style="width:' + avgWidth + '%" data-week="' + _w.code + '">' + _w.name + '</td>';
+            }
+            _html += '</tr>';
+
+            // 构建item
+            var _rowIndex = 0;
+            var unitsSpreadnum = [];
+            unitsSpreadnum[0] = unitsSpread[0];
+            for (var i = 1; i < unitsSpread.length; i++) {
+                var code = unitsSpread[i].code;
+                var name = unitsSpread[i].name;
+                var spread = unitsSpread[i].spread + unitsSpreadnum[i - 1].spread;
+                unitsSpreadnum.push({
+                    code: code,
+                    name: name,
+                    spread: spread
+                });
+            }
+            for (var i = 0; i < units.length; i++) {
+                var _u = units[i];
+                var spreadname = '';
+                _html += ' <tr>';
+                for (var j = 0; j < unitsSpreadnum.length; j++) {
+                    var currentObj = unitsSpreadnum[j];
+                    if (i < currentObj.spread) {
+                        spreadname = currentObj.name;
+                        break;
+                    }
+                }
+                _html += '<td class="mtt_bgcolor_grey">' + spreadname + '</td>';
+                _html += '  <td class="mtt_bgcolor_grey" data-unit="' + _u.code + '">' + _u.name + '</td>';
+
+                for (var j = 0; j < weeks.length; j++) {
+                    // 如果节次模式是多节
+                    if (unitMode > 1) {
+                        // 判断当前列对应的rowspan下标是否为0，为0表示第一列，其他的则不拼td
+                        if (_rowIndex === 0) {
+                            _html += '<td data-role="item" data-week="' + weeks[j].code + '" data-begin-unit="' + _u.code + '" data-end-unit="' + (parseInt(_u.code) + unitMode - 1) + '" ';
+                            _html += 'rowspan=' + unitMode + '>';
+                            _html += '</td>';
+                        }
+                    } else {
+                        _html += '<td data-role="item" data-week="' + weeks[j].code + '" data-begin-unit="' + _u.code + '" data-end-unit="' + _u.code + '"></td>';
+                    }
+                }
+                // 每循环一次节次列表，rowspan的下标+1，如果rowspan的下标等于节次数了，则重新初始化rowspan的下标值
+                _rowIndex++;
+                if (_rowIndex === unitMode) {
+                    _rowIndex = 0;
+                    if (i + unitMode >= units.length)
+                        unitMode = units.length - i - 1;
+                }
+                _html += '</tr>';
+            }
+
+            return _html;
+        },
+
+        /**
+         * 根据星期、开始节次和结束节次找到对应的排课结果
+         * @param  {[type]} week      [description]
+         * @param  {[type]} beginUnit [description]
+         * @param  {[type]} endUnit   [description]
+         * @return {[type]}           [description]
+         */
+        findArrangesByWeekAndUnit: function(week, beginUnit, endUnit) {
+            var res = [];
+            if (this.params.arranges !== undefined) {
+                for (var i = 0; i < this.params.arranges.length; i++) {
+                    var a = this.params.arranges[i];
+                    if (a.week === week && this.ifHasIntersection(a.beginUnit, a.endUnit, beginUnit, endUnit)) {
+                        res.push(a);
+                    }
+                }
+            }
+            return res;
+        },
+
+        //判断课程与单元格的时间是否有交集
+        ifHasIntersection: function(abeginUnit, aendUnit, beginUnit, endUnit) {
+        	if (abeginUnit <= endUnit && aendUnit >= beginUnit) {
+        		return true;
+        	}
+        	return false;
+        },
+
+        /**
+         * 计算不同课程号对应的不同背景色
+         * @param  {[type]} arranges  [description]
+         * @return {[obj]}            [{kcdm1:color1,kcdm2:color2...}]
+         */
+        initBgColor: function(arranges) {
+            var bgColor = {};
+            var colorHouseNum = this.colorWareHouse.length;
+            var flag = true;
+            for (var i = 0; i < arranges.length; i++) {
+                if (!arranges[i].tzkc) {
+                    for (j in bgColor) {
+                        if (arranges[i].kcdm === j) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag) {
+                        var colorindex;
+                        var nowColorLength = Object.keys(bgColor).length;
+                        if (nowColorLength < colorHouseNum)
+                            colorindex = nowColorLength;
+                        else
+                            colorindex = colorHouseNum - 1;
+                        bgColor[arranges[i].kcdm] = this.colorWareHouse[colorindex];
+                    }
+                    flag = true;
+                }
+            }
+            return bgColor;
+        },
+
+        //合并时间段（上午,下午...）单元格
+        mergeUnitsSpread: function(_unitsSpread) {
+            var _tr = $(this.params.container).find('tr');
+            var index = 1;
+            for (var i = 0; i < _unitsSpread.length; i++) {
+                $(_tr[index]).children(":first").attr('rowspan', _unitsSpread[i].spread);
+                for (var j = 1; j < _unitsSpread[i].spread; j++) {
+                    $(_tr[index + j]).children(":first").remove();
+                }
+                index += _unitsSpread[i].spread;
+            }
+            if (_tr.length > index) {
+                $(_tr[index]).children(":first").attr('rowspan', _tr.length - index);
+                for (var j = index + 1; j < _tr.length; j++) {
+                    $(_tr[j]).children(":first").remove();
+                }
+            }
+        },
+
+        getWeeks: function() {
+            // 如果参数带有weeks，则直接使用参数的weeks
+            if (this.params.weeks)
+                return this.params.weeks;
+            // 如果参数中写了获取weeks的URL，则使用ajax获取相应的weeks
+            if (this.params.loadWeeksUrl)
+                return this.getAjaxWeeks();
+            // 获取默认提供的weeks
+            return this.getDefaultWeeks();
+        },
+
+        /**
+         * 获取默认的星期
+         */
+        getDefaultWeeks: function() {
+            return [{
+                code: "1",
+                name: "星期一"
+            }, {
+                code: "2",
+                name: "星期二"
+            }, {
+                code: "3",
+                name: "星期三"
+            }, {
+                code: "4",
+                name: "星期四"
+            }, {
+                code: "5",
+                name: "星期五"
+            }, {
+                code: "6",
+                name: "星期六"
+            }, {
+                code: "7",
+                name: "星期日"
+            }];
+        },
+
+        /**
+         * 通过ajax获取星期
+         */
+        getAjaxWeeks: function() {
+            var _this = this;
+            var _weeks = [];
+            $.ajax({
+                url: this.params.loadWeeksUrl,
+                cache: false,
+                dataType: "json",
+                type: "get",
+                async: false,
+                success: function(data) {
+                    if (_this.params.convertWeeksFunc) {
+                        _weeks = _this.params.convertWeeksFunc(data);
+                    } else {
+                        _weeks = data;
+                    }
+                }
+            });
+            return _weeks;
+        },
+
+        getUnits: function() {
+            // 如果参数带有units，则直接使用参数的units
+            if (this.params.units)
+                return this.params.units;
+            // 如果参数中写了获取units的URL，则使用ajax获取相应的units
+            if (this.params.loadUnitsUrl)
+                return this.getAjaxUnits();
+            // 获取默认提供的weeks
+            return this.getDefaultUnits();
+        },
+
+        /**
+         * 通过ajax获取节次
+         */
+        getAjaxUnits: function() {
+            var _this = this;
+            var _units = [];
+            $.ajax({
+                url: this.params.loadUnitsUrl,
+                cache: false,
+                dataType: "json",
+                type: "get",
+                async: false,
+                success: function(data) {
+                    if (_this.params.convertUnitsFunc) {
+                        _units = _this.params.convertUnitsFunc(data);
+                    } else {
+                        _units = data;
+                    }
+                }
+            });
+            return _units;
+        },
+        /**
+         * 获取默认的节次
+         */
+        getDefaultUnits: function() {
+            return [{
+                code: "1",
+                name: "1"
+            }, {
+                code: "2",
+                name: "2"
+            }, {
+                code: "3",
+                name: "3"
+            }, {
+                code: "4",
+                name: "4"
+            }, {
+                code: "5",
+                name: "5"
+            }, {
+                code: "6",
+                name: "6"
+            }, {
+                code: "7",
+                name: "7"
+            }, {
+                code: "8",
+                name: "8"
+            }, {
+                code: "9",
+                name: "9"
+            }, {
+                code: "10",
+                name: "10"
+            }, {
+                code: "11",
+                name: "11"
+            }, {
+                code: "12",
+                name: "12"
+            }, {
+                code: "13",
+                name: "13"
+            }, {
+                code: "14",
+                name: "14"
+            }];
+        },
+
+        getUnitsSpread: function() {
+            // 如果参数带有unitsSpread，则直接使用参数的unitsSpread
+            if (this.params.unitsSpread)
+                return this.params.unitsSpread;
+            // 如果参数中写了获取unitsSpread的URL，则使用ajax获取相应的unitsSpread
+            if (this.params.loadUnitsSpreadUrl)
+                return this.getAjaxUnitsSpread();
+            // 获取默认提供的unitsSpread
+            return this.getDefaultUnitsSpread();
+        },
+
+        /**
+         * 获取默认的节次分布
+         */
+        getDefaultUnitsSpread: function() {
+            return [{
+                code: "1",
+                name: "上午",
+                spread: 4
+            }, {
+                code: "2",
+                name: "中午",
+                spread: 2
+            }, {
+                code: "3",
+                name: "下午",
+                spread: 4
+            }, {
+                code: "4",
+                name: "晚上",
+                spread: 2
+            }];
+        },
+
+        /**
+         * 通过ajax获取节次分布
+         */
+        getAjaxUnitsSpread: function() {
+            var _this = this;
+            var _unitsSpread = [];
+            $.ajax({
+                url: this.params.loadUnitsSpreadUrl,
+                cache: false,
+                dataType: "json",
+                type: "get",
+                async: false,
+                success: function(data) {
+                    if (_this.params.convertUnitsSpreadFunc) {
+                        _unitsSpread = _this.params.convertUnitsSpreadFunc(data);
+                    } else {
+                        _unitsSpread = data;
+                    }
+                }
+            });
+            return _unitsSpread;
+        },
+
+        /**
+         * 预处理节次分布使得节次分布数与节次相匹配(按传入的节次参数来修正节次分布数)
+         */
+        preTreatmentUS: function(units, unitsSpread) {
+            var unitsNum = units.length;
+            for (var i = 0; i < unitsSpread.length; i++) {
+                if (unitsNum < unitsSpread[i].spread) {
+                    unitsSpread[i].spread = unitsNum;
+                }
+                unitsNum -= unitsSpread[i].spread;
+            }
+            return unitsSpread;
+        },
+        highLightWeeks: function() {
+            var obj = this.params.highLightWeeks;
+            if (typeof obj !== 'undefined') {
+                var highLightWeeksArray = [];
+                var flag = Object.prototype.toString.call(obj) === '[object Number]';
+                if (flag) {
+                    highLightWeeksArray.push(obj);
+                } else {
+                    highLightWeeksArray = obj;
+                }
+                $.each(highLightWeeksArray, function() {
+                    $('[data-week="' + this + '"]').addClass('highLight');
+                });
+            }
+        }
+    };
+
+
+    /**
+     * 参数复制
+     * @param from
+     * @param to
+     */
+    function copyPropertyVal(from, to) {
+        for (var f in from) {
+            for (var t in to) {
+                if (f === t && from[f] !== undefined) {
+                    to[t] = from[f];
+                    break;
+                }
+            }
+        }
+    }
+
+    return weekUnitTableInfo;
+
+}(jQuery)));

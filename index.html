@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<!-- saved from url=(0236)https://ehall.xidian.edu.cn/jwapp/sys/wdkb/*default/index.do?amp_sec_version_=1&gid_=eWltSEtEZkhtRnFwbzQrNU1UaDVrcVFialpHcVo5QTQ1cHFFZm1ZaktqM090NmtMV2hjUzQ1T1RHcVBNK1haMmtaSGhVR1hJSllUNFFJQS9IT0FLNmc9PQ&EMAP_LANG=zh&THEME=cherry#/xskcb -->
+<html lang="zh-CN" class=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    
+    
+
+<script>
+    window.WIS_CONFIG = {
+        ROOT_PATH: "/jwapp",
+        PATH: "/jwapp",
+        APPID: "4770397878132218",
+        APPNAME: "wdkb",
+    };
+
+    var contextPath = "/jwapp";
+    var path = window.location.href;
+    var end = path.indexOf('/sys/');
+    var context_path = path.substring(0, end);
+    var appname = WIS_CONFIG.APPNAME;
+    var appid = WIS_CONFIG.APPID;
+    var app_path = context_path + "/sys/" + appname;
+    var roleId = "20161114165154340";
+    window.APP_CONFIG = {
+        ROOT_PATH: "/jwapp",
+        PATH: "/jwapp",
+        APP_VERSION: "1729582295331",
+        "MODULE_PATH": app_path + '/modules/',
+
+        "FE_DEBUG_MODE": false,
+
+        "ISSENTRY": true,
+        /*
+        	业务线开发模式，转测时置false
+         */
+        "DEBUG_MODE": false,
+
+        /*
+        	资源服务器地址
+         */
+        "RESOURCE_SERVER": "https://res.xidian.edu.cn",
+
+
+        "BH_VERSION": '1.2',
+
+        /*
+         * 主题 blue purple
+         */
+        "THEME": "blue",
+
+        /*
+        	服务器端生成配置API(API_BASE_PATH目录下)
+        	@example "/config.do" ./mock/serverconfig.json
+         */
+        "SERVER_CONFIG_API": context_path + "/sys/funauthapp/api/getAppConfig/" + appname + "-" +
+            appid + ".do",
+
+        /*
+        	APP默认路由
+         */
+        'APP_ENTRY': "",
+
+        /*
+        	应用底部说明文本
+         */
+        "FOOTER_TEXT": "西安电子科技大学",
+        "HEADER": {
+            "dropMenuCallback": function(item) {
+                if (item.id == pageMeta.params.ROLEID) {
+                    return false;
+                }
+                var url = WIS_CONFIG.ROOT_PATH + "/sys/funauthapp/api/changeAppRole/" + WIS_CONFIG.APPNAME + "/" + item.id + ".do";
+                $.ajax({
+                    url: url,
+                    type: 'post',
+                    async: false,
+                    error: function() {
+                        $.bhDialog({
+                            title: '切换失败',
+                            iconType: 'warning'
+                        });
+                    },
+                    success: function(data) {
+                        if (data != "" && data != null) {
+                            BH_UTILS.doSyncAjax(WIS_CONFIG.ROOT_PATH + '/sys/jwpubapp/pub/setJwCommonAppRole.do', {
+                                "ROLEID": item.id
+                            });
+                            location.href = location.href.replace(/&?gid_=[^&]*/, '').replace(/&?_yhz=[^&]*/, '').replace(/#.*/, '');
+                        }
+                    }
+                });
+            },
+            "logo": "http://ehall.xidian.edu.cn/new/portal/custom/img/logo/logo-mini.png",
+            "icons": ["icon-apps"]
+        },
+        "TEMPLATE_AFTER_RENDER": function(html) {
+            WIS_EMAP_CONFIG['emapdatatable.fxss'] = true;
+            WIS_EMAP_CONFIG['emapdatatable.isOnceEmpty'] = 'false'==='true'?true:false;
+            window.emapdatatableDefaultPageSize = '';
+            window.exportZipMaXFileNum = Number('10');
+            window.platformDomainName = '';
+            return html;
+        }
+    };
+    var APP_CFG = {
+        "app_footer": "西安电子科技大学",
+        "app_theme": "blue",
+        "res_server_path": "https://res.xidian.edu.cn",
+        "indexLogoUrl": "http://ehall.xidian.edu.cn/new/portal/custom/img/logo/logo-mini.png",
+        "header": {
+            "dropMenuCallback": function(item) {
+                if (item.id == pageMeta.params.ROLEID) {
+                    return false;
+                }
+                var url = WIS_CONFIG.ROOT_PATH + "/sys/funauthapp/api/changeAppRole/" + WIS_CONFIG.APPNAME + "/" + item.id + ".do";
+                $.ajax({
+                    url: url,
+                    type: 'post',
+                    data: 'selectedRoleId=' + item.id,
+                    async: false,
+                    error: function() {
+                        $.bhDialog({
+                            title: '切换失败',
+                            iconType: 'warning'
+                        });
+                    },
+                    success: function(data) {
+                        if (data != "" && data != null) {
+                            location.href = location.href.replace(/&?gid_=[^&]*/, '').replace(/&?_yhz=[^&]*/, '').replace(/#.*/, '');
+                        }
+                    }
+                });
+            },
+            "logo": "http://ehall.xidian.edu.cn/new/portal/custom/img/logo/logo-mini.png",
+            "icons": ["icon-apps"]
+        }
+    };
+</script>
+<script src="./我的课表_files/commonlib.js.下载"></script>
+<link rel="stylesheet" href="./我的课表_files/summernote-bs3.min.css">
+<link rel="stylesheet" href="./我的课表_files/summernote.css">
+<script src="./我的课表_files/bootstrap.min.js.下载"></script>
+<script src="./我的课表_files/summernote.js.下载"></script>
+<script src="./我的课表_files/cropper.min.js.下载"></script>
+<link rel="stylesheet" type="text/css" href="./我的课表_files/publicStyle.css">
+<link rel="stylesheet" type="text/css" href="./我的课表_files/zero-plugin.min.css">
+<script type="text/javascript" src="./我的课表_files/zero-plugin.min.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/zeroImporter2.js.下载"></script>
+
+<script src="./我的课表_files/appcore-min.js.下载"></script>
+<link rel="stylesheet" type="text/css" href="./我的课表_files/material-design-iconic-font.css">
+<link rel="stylesheet" href="./我的课表_files/doc.css">
+
+<script type="text/javascript" src="./我的课表_files/vue2.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/public-frreport.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/jwcommon.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/common.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/jwrzlb.js.下载"></script>
+<link rel="stylesheet" type="text/css" href="./我的课表_files/jwPackagingMethod.css">
+<script type="text/javascript" src="./我的课表_files/jwPackagingMethod.min.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/goldenfingerPlugins.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/goldenfinger.js.下载"></script>
+<script type="text/javascript" src="./我的课表_files/jwgjhFormGy.js.下载"></script>
+
+    <link rel="stylesheet" type="text/css" href="./我的课表_files/weekUnitTableInfo.css">
+    <script src="./我的课表_files/ggFunctions.js.下载"></script>
+	<script src="./我的课表_files/jwpublic.js.下载"></script>
+	<script src="./我的课表_files/printArea.js.下载"></script>
+    <script src="./我的课表_files/weekUnitTableInfo.js.下载"></script>
+    <script type="text/javascript" src="./我的课表_files/publicExport.js.下载"></script>
+    <script type="text/javascript" src="./我的课表_files/publicFunction.js.下载"></script>
+    <script type="text/javascript" src="./我的课表_files/radialIndicator.js.下载"></script>
+    <script type="text/javascript">
+		function includeJsAndCssFiles(file) {
+			var includePath = '';
+			if (window.WIS_CONFIG !== undefined && window.WIS_CONFIG.PATH !== undefined) {
+				includePath += window.WIS_CONFIG.PATH;
+			}
+			includePath += '';
+
+			var files = typeof file == "string" ? [ file ] : file;
+			for (var i = 0; i < files.length; i++) {
+				var name = files[i];
+				var att = name.split('.');
+				var ext = att[att.length - 1].toLowerCase();
+				var isCSS = ext == "css";
+				var tag = isCSS ? "link" : "script";
+				var attr = isCSS ? " type='text/css' rel='stylesheet' " : " language='javascript' type='text/javascript' ";
+				var link = (isCSS ? "href" : "src") + "='" + name + "'";
+				if ($(tag + "[" + link + "]").length == 0) {
+					document.write("<" + tag + attr + link + "></" + tag + ">");
+				}
+			}
+		}
+		//var isIe = /msie/.test(navigator.userAgent.toLowerCase());
+		function isIE() { //ie?  
+		    if (!!window.ActiveXObject || "ActiveXObject" in window)  
+		        return true;  
+		    else  
+		        return false;  
+		}  
+		if (isIE()) {
+			includeJsAndCssFiles('../public/widget/weekUnitTableInfo/es6-promise.js');
+		}
+	</script>
+    <script src="./我的课表_files/html2canvas.js.下载"></script>
+    <!-- package.js 转测时开放（执行gulp buildapp 命令可以生成该文件）-->
+    <!-- <script type="text/javascript" src="./dest/package.js"></script> -->
+    <!-- 全局变量pageMeta-->
+    <script type="text/javascript">
+        var pageMeta = {"datas":{},"models":[],"routes":{},"params":{"ROLEID":"20161114165154340","USERID":"21079100079"}};
+		var userId = pageMeta.params.USERID;
+		var userName = pageMeta.params.USERNAME;
+        var roleId = pageMeta.params.ROLEID;	
+		window.WIS_CONFIG = {
+			ROOT_PATH: "/jwapp",
+			PATH: "/jwapp",
+			APPID: "4770397878132218",
+			APPNAME:"wdkb"
+		}
+    </script>
+<style type="text/css">.zeromodal-scroll-margin{margin-right:17px;}</style><style type="text/css">@font-face {
+  font-family: "xm-iconfont";
+  src: url('//at.alicdn.com/t/font_792691_ptvyboo0bno.eot?t=1574048839056');
+  /* IE9 */
+  src: url('//at.alicdn.com/t/font_792691_ptvyboo0bno.eot?t=1574048839056#iefix') format('embedded-opentype'), /* IE6-IE8 */ url('data:application/x-font-woff2;charset=utf-8;base64,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') format('woff2'), url('//at.alicdn.com/t/font_792691_ptvyboo0bno.woff?t=1574048839056') format('woff'), url('//at.alicdn.com/t/font_792691_ptvyboo0bno.ttf?t=1574048839056') format('truetype'), /* chrome, firefox, opera, Safari, Android, iOS 4.2+ */ url('//at.alicdn.com/t/font_792691_ptvyboo0bno.svg?t=1574048839056#iconfont') format('svg');
+  /* iOS 4.1- */
+}
+.xm-iconfont {
+  font-family: "xm-iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.xm-icon-quanxuan:before {
+  content: "\e62c";
+}
+.xm-icon-caidan:before {
+  content: "\e610";
+}
+.xm-icon-fanxuan:before {
+  content: "\e837";
+}
+.xm-icon-pifu:before {
+  content: "\e668";
+}
+.xm-icon-qingkong:before {
+  content: "\e63e";
+}
+.xm-icon-sousuo:before {
+  content: "\e600";
+}
+.xm-icon-danx:before {
+  content: "\e62b";
+}
+.xm-icon-duox:before {
+  content: "\e613";
+}
+.xm-icon-close:before {
+  content: "\e601";
+}
+.xm-icon-expand:before {
+  content: "\e641";
+}
+.xm-icon-banxuan:before {
+  content: "\e60d";
+}
+</style><style type="text/css">@-webkit-keyframes xm-upbit {
+  from {
+    -webkit-transform: translate3d(0, 30px, 0);
+    opacity: 0.3;
+  }
+  to {
+    -webkit-transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+@keyframes xm-upbit {
+  from {
+    transform: translate3d(0, 30px, 0);
+    opacity: 0.3;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+@-webkit-keyframes loader {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes loader {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+xm-select {
+  background-color: #FFF;
+  position: relative;
+  border: 1px solid #E6E6E6;
+  border-radius: 2px;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+}
+xm-select * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+xm-select:hover,
+xm-select:focus {
+  border-color: #C0C4CC;
+}
+xm-select > .xm-tips {
+  color: #999999;
+  padding: 0 10px;
+  position: absolute;
+  display: flex;
+  height: 100%;
+  align-items: center;
+}
+xm-select > .xm-icon {
+  display: inline-block;
+  overflow: hidden;
+  position: absolute;
+  width: 0;
+  height: 0;
+  right: 10px;
+  top: 50%;
+  margin-top: -3px;
+  cursor: pointer;
+  border: 6px dashed transparent;
+  border-top-color: #C2C2C2;
+  border-top-style: solid;
+  transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+}
+xm-select > .xm-icon-expand {
+  margin-top: -9px;
+  transform: rotate(180deg);
+}
+xm-select > .xm-label.single-row {
+  position: absolute;
+  top: 0;
+  bottom: 0px;
+  left: 0px;
+  right: 30px;
+  overflow: auto hidden;
+}
+xm-select > .xm-label.single-row .scroll {
+  overflow-y: hidden;
+}
+xm-select > .xm-label.single-row .label-content {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+xm-select > .xm-label.auto-row .label-content {
+  flex-wrap: wrap;
+  padding-right: 30px !important;
+}
+xm-select > .xm-label.auto-row .xm-label-block > span {
+  white-space: unset;
+  height: 100%;
+}
+xm-select > .xm-label .scroll .label-content {
+  display: flex;
+  padding: 3px 10px;
+}
+xm-select > .xm-label .xm-label-block {
+  display: flex;
+  position: relative;
+  padding: 0px 5px;
+  margin: 2px 5px 2px 0;
+  border-radius: 3px;
+  align-items: baseline;
+  color: #FFF;
+}
+xm-select > .xm-label .xm-label-block > span {
+  display: flex;
+  color: #FFF;
+  white-space: nowrap;
+}
+xm-select > .xm-label .xm-label-block > i {
+  color: #FFF;
+  margin-left: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+}
+xm-select > .xm-label .xm-label-block.disabled {
+  background-color: #C2C2C2 !important;
+  cursor: no-drop !important;
+}
+xm-select > .xm-label .xm-label-block.disabled > i {
+  cursor: no-drop !important;
+}
+xm-select > .xm-body {
+  position: absolute;
+  left: 0;
+  top: 42px;
+  padding: 5px 0;
+  z-index: 999;
+  width: 100%;
+  min-width: fit-content;
+  border: 1px solid #E6E6E6;
+  background-color: #fff;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  animation-name: xm-upbit;
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+}
+xm-select > .xm-body .scroll-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+xm-select > .xm-body .scroll-body::-webkit-scrollbar {
+  width: 8px;
+}
+xm-select > .xm-body .scroll-body::-webkit-scrollbar-track {
+  -webkit-border-radius: 2em;
+  -moz-border-radius: 2em;
+  -ms-border-radius: 2em;
+  border-radius: 2em;
+  background-color: #FFF;
+}
+xm-select > .xm-body .scroll-body::-webkit-scrollbar-thumb {
+  -webkit-border-radius: 2em;
+  -moz-border-radius: 2em;
+  -ms-border-radius: 2em;
+  border-radius: 2em;
+  background-color: #C2C2C2;
+}
+xm-select > .xm-body.up {
+  top: auto;
+  bottom: 42px;
+}
+xm-select > .xm-body.relative {
+  position: relative;
+  display: block !important;
+  top: 0;
+  box-shadow: none;
+  border: none;
+  animation-name: none;
+  animation-duration: 0;
+  min-width: 100%;
+}
+xm-select > .xm-body .xm-group {
+  cursor: default;
+}
+xm-select > .xm-body .xm-group-item {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0 10px;
+  color: #999;
+  font-size: 12px;
+}
+xm-select > .xm-body .xm-option {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 10px;
+  cursor: pointer;
+}
+xm-select > .xm-body .xm-option-icon {
+  color: transparent;
+  display: flex;
+  border: 1px solid #E6E6E6;
+  border-radius: 3px;
+  justify-content: center;
+  align-items: center;
+}
+xm-select > .xm-body .xm-option-icon.xm-custom-icon {
+  color: unset;
+  border: unset;
+}
+xm-select > .xm-body .xm-option-icon-hidden {
+  margin-right: -10px;
+}
+xm-select > .xm-body .xm-option-icon.xm-icon-danx {
+  border-radius: 100%;
+}
+xm-select > .xm-body .xm-option-content {
+  display: flex;
+  position: relative;
+  padding-left: 15px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  ;
+  width: calc(100% - 20px);
+}
+xm-select > .xm-body .xm-option.hide-icon .xm-option-content {
+  padding-left: 0;
+}
+xm-select > .xm-body .xm-option.selected.hide-icon .xm-option-content {
+  color: #FFF !important;
+}
+xm-select > .xm-body .xm-option .loader {
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 6px;
+  color: #C2C2C2;
+}
+xm-select > .xm-body .xm-select-empty {
+  text-align: center;
+  color: #999;
+}
+xm-select > .xm-body .disabled {
+  cursor: no-drop;
+}
+xm-select > .xm-body .disabled:hover {
+  background-color: #FFF;
+}
+xm-select > .xm-body .disabled .xm-option-icon {
+  border-color: #C2C2C2 !important;
+}
+xm-select > .xm-body .disabled .xm-option-content {
+  color: #C2C2C2 !important;
+}
+xm-select > .xm-body .disabled.selected > .xm-option-icon {
+  color: #C2C2C2 !important;
+}
+xm-select > .xm-body .xm-search {
+  background-color: #FFF !important;
+  position: relative;
+  padding: 0 10px;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+xm-select > .xm-body .xm-search > i {
+  position: absolute;
+  color: ;
+}
+xm-select > .xm-body .xm-search-input {
+  border: none;
+  border-bottom: 1px solid #E6E6E6;
+  padding-left: 27px;
+  cursor: text;
+}
+xm-select > .xm-body .xm-paging {
+  padding: 0 10px;
+  display: flex;
+  margin-top: 5px;
+}
+xm-select > .xm-body .xm-paging > span:first-child {
+  border-radius: 2px 0 0 2px;
+}
+xm-select > .xm-body .xm-paging > span:last-child {
+  border-radius: 0 2px 2px 0;
+}
+xm-select > .xm-body .xm-paging > span {
+  display: flex;
+  flex: auto;
+  justify-content: center;
+  vertical-align: middle;
+  margin: 0 -1px 0 0;
+  background-color: #fff;
+  color: #333;
+  font-size: 12px;
+  border: 1px solid #e2e2e2;
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow: hidden;
+  min-width: 50px;
+}
+xm-select > .xm-body .xm-toolbar {
+  padding: 0 10px;
+  display: flex;
+  margin: -3px 0;
+  cursor: default;
+}
+xm-select > .xm-body .xm-toolbar .toolbar-tag {
+  cursor: pointer;
+  display: flex;
+  margin-right: 20px;
+  color: ;
+  align-items: baseline;
+}
+xm-select > .xm-body .xm-toolbar .toolbar-tag:hover {
+  opacity: 0.8;
+}
+xm-select > .xm-body .xm-toolbar .toolbar-tag:active {
+  opacity: 1;
+}
+xm-select > .xm-body .xm-toolbar .toolbar-tag > i {
+  margin-right: 2px;
+  font-size: 14px;
+}
+xm-select > .xm-body .xm-toolbar .toolbar-tag:last-child {
+  margin-right: 0;
+}
+xm-select > .xm-body .xm-body-custom {
+  line-height: initial;
+  cursor: default;
+}
+xm-select > .xm-body .xm-body-custom * {
+  box-sizing: initial;
+}
+xm-select > .xm-body .xm-tree {
+  position: relative;
+}
+xm-select > .xm-body .xm-tree-icon {
+  display: inline-block;
+  margin-right: 3px;
+  cursor: pointer;
+  border: 6px dashed transparent;
+  border-left-color: #C2C2C2;
+  border-left-style: solid;
+  transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  z-index: 2;
+  visibility: hidden;
+}
+xm-select > .xm-body .xm-tree-icon.expand {
+  margin-top: 3px;
+  margin-right: 5px;
+  margin-left: -2px;
+  transform: rotate(90deg);
+}
+xm-select > .xm-body .xm-tree-icon.xm-visible {
+  visibility: visible;
+}
+xm-select > .xm-body .xm-tree .left-line {
+  position: absolute;
+  left: 13px;
+  width: 0;
+  z-index: 1;
+  border-left: 1px dotted #c0c4cc !important;
+}
+xm-select > .xm-body .xm-tree .top-line {
+  position: absolute;
+  left: 13px;
+  height: 0;
+  z-index: 1;
+  border-top: 1px dotted #c0c4cc !important;
+}
+xm-select > .xm-body .xm-tree .xm-tree-icon + .top-line {
+  margin-left: 1px;
+}
+xm-select > .xm-body .scroll-body > .xm-tree > .xm-option > .top-line,
+xm-select > .xm-body .scroll-body > .xm-option > .top-line {
+  width: 0 !important;
+}
+xm-select > .xm-body .xm-cascader-box {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: 5px 0;
+  border: 1px solid #E6E6E6;
+  background-color: #fff;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  margin: -1px;
+}
+xm-select > .xm-body .xm-cascader-box::before {
+  content: ' ';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-right-color: #E6E6E6;
+  top: 10px;
+  left: -12px;
+}
+xm-select > .xm-body .xm-cascader-box::after {
+  content: ' ';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-right-color: #fff;
+  top: 10px;
+  left: -11px;
+}
+xm-select > .xm-body .xm-cascader-scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+xm-select > .xm-body.cascader {
+  width: unset;
+  min-width: unset;
+}
+xm-select > .xm-body.cascader .xm-option-content {
+  padding-left: 8px;
+}
+xm-select > .xm-body.cascader .disabled .xm-right-arrow {
+  color: #C2C2C2 !important;
+}
+xm-select > .xm-body.cascader .hide-icon.disabled .xm-right-arrow {
+  color: #999 !important;
+}
+xm-select .xm-input {
+  cursor: pointer;
+  border-radius: 2px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #E6E6E6;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #FFF;
+  line-height: 1.3;
+  padding-left: 10px;
+  outline: 0;
+  user-select: text;
+  -ms-user-select: text;
+  -moz-user-select: text;
+  -webkit-user-select: text;
+}
+xm-select .dis {
+  display: none;
+}
+xm-select .loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+xm-select .loader {
+  border: 0.2em dotted currentcolor;
+  border-radius: 50%;
+  -webkit-animation: 1s loader linear infinite;
+  animation: 1s loader linear infinite;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+  vertical-align: middle;
+  pointer-events: none;
+}
+xm-select .xm-select-default {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: none;
+  visibility: hidden;
+}
+xm-select .xm-select-disabled {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  cursor: no-drop;
+  z-index: 2;
+  opacity: 0.3;
+  background-color: #FFF;
+}
+xm-select .item--divided {
+  border-top: 1px solid #ebeef5;
+  width: calc(100% - 20px);
+  cursor: initial;
+}
+xm-select .xm-right-arrow {
+  position: absolute;
+  color: ;
+  right: 5px;
+  top: -1px;
+  font-weight: 700;
+  transform: scale(0.6, 1);
+}
+xm-select .xm-right-arrow::after {
+  content: '>';
+}
+xm-select[size='large'] {
+  min-height: 40px;
+  line-height: 40px;
+}
+xm-select[size='large'] .xm-input {
+  height: 40px;
+}
+xm-select[size='large'] .xm-label .scroll .label-content {
+  line-height: 34px;
+}
+xm-select[size='large'] .xm-label .xm-label-block {
+  height: 30px;
+  line-height: 30px;
+}
+xm-select[size='large'] .xm-body .xm-option .xm-option-icon {
+  height: 20px;
+  width: 20px;
+  font-size: 20px;
+}
+xm-select[size='large'] .xm-paging > span {
+  height: 34px;
+  line-height: 34px;
+}
+xm-select[size='large'] .xm-tree .left-line {
+  height: 100%;
+  bottom: 20px;
+}
+xm-select[size='large'] .xm-tree .left-line-group {
+  height: calc(100% - 40px);
+}
+xm-select[size='large'] .xm-tree .xm-tree-icon.xm-hidden + .top-line {
+  top: 19px;
+}
+xm-select[size='large'] .item--divided {
+  margin: 10px;
+}
+xm-select {
+  min-height: 36px;
+  line-height: 36px;
+}
+xm-select .xm-input {
+  height: 36px;
+}
+xm-select .xm-label .scroll .label-content {
+  line-height: 30px;
+}
+xm-select .xm-label .xm-label-block {
+  height: 26px;
+  line-height: 26px;
+}
+xm-select .xm-body .xm-option .xm-option-icon {
+  height: 18px;
+  width: 18px;
+  font-size: 18px;
+}
+xm-select .xm-paging > span {
+  height: 30px;
+  line-height: 30px;
+}
+xm-select .xm-tree .left-line {
+  height: 100%;
+  bottom: 18px;
+}
+xm-select .xm-tree .left-line-group {
+  height: calc(100% - 36px);
+}
+xm-select .xm-tree .xm-tree-icon.xm-hidden + .top-line {
+  top: 17px;
+}
+xm-select .item--divided {
+  margin: 9px;
+}
+xm-select[size='small'] {
+  min-height: 32px;
+  line-height: 32px;
+}
+xm-select[size='small'] .xm-input {
+  height: 32px;
+}
+xm-select[size='small'] .xm-label .scroll .label-content {
+  line-height: 26px;
+}
+xm-select[size='small'] .xm-label .xm-label-block {
+  height: 22px;
+  line-height: 22px;
+}
+xm-select[size='small'] .xm-body .xm-option .xm-option-icon {
+  height: 16px;
+  width: 16px;
+  font-size: 16px;
+}
+xm-select[size='small'] .xm-paging > span {
+  height: 26px;
+  line-height: 26px;
+}
+xm-select[size='small'] .xm-tree .left-line {
+  height: 100%;
+  bottom: 16px;
+}
+xm-select[size='small'] .xm-tree .left-line-group {
+  height: calc(100% - 32px);
+}
+xm-select[size='small'] .xm-tree .xm-tree-icon.xm-hidden + .top-line {
+  top: 15px;
+}
+xm-select[size='small'] .item--divided {
+  margin: 8px;
+}
+xm-select[size='mini'] {
+  min-height: 28px;
+  line-height: 28px;
+}
+xm-select[size='mini'] .xm-input {
+  height: 28px;
+}
+xm-select[size='mini'] .xm-label .scroll .label-content {
+  line-height: 22px;
+}
+xm-select[size='mini'] .xm-label .xm-label-block {
+  height: 18px;
+  line-height: 18px;
+}
+xm-select[size='mini'] .xm-body .xm-option .xm-option-icon {
+  height: 14px;
+  width: 14px;
+  font-size: 14px;
+}
+xm-select[size='mini'] .xm-paging > span {
+  height: 22px;
+  line-height: 22px;
+}
+xm-select[size='mini'] .xm-tree .left-line {
+  height: 100%;
+  bottom: 14px;
+}
+xm-select[size='mini'] .xm-tree .left-line-group {
+  height: calc(100% - 28px);
+}
+xm-select[size='mini'] .xm-tree .xm-tree-icon.xm-hidden + .top-line {
+  top: 13px;
+}
+xm-select[size='mini'] .item--divided {
+  margin: 7px;
+}
+.layui-form-pane xm-select {
+  margin: -1px -1px -1px 0;
+}
+</style><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="config" src="./我的课表_files/config.js.下载"></script><style>.app-ajax-loading .bh-loader-icon-line-border{border: 0px solid #ddd;box-shadow:none;}.app-ajax-loading{position:fixed;z-index:30000;}.app-loading{position:absolute;opacity:0;top:150px;left:-75px;margin-left:50%;z-index:-1;text-align:center}.app-loading-show{z-index:9999;animation:fade-in;animation-duration:0.5s;-webkit-animation:fade-in 0.5s;opacity:1;}@keyframes fade-in{0%{opacity:0}50%{opacity:.4}100%{opacity:1}}@-webkit-keyframes fade-in{0%{opacity:0}50%{opacity:.4}100%{opacity:1}}.spinner>div{width:30px;height:30px;background-color:#4DAAF5;border-radius:100%;display:inline-block;-webkit-animation:bouncedelay 1.4s infinite ease-in-out;animation:bouncedelay 1.4s infinite ease-in-out;-webkit-animation-fill-mode:both;animation-fill-mode:both}.spinner .bounce1{-webkit-animation-delay:-.32s;animation-delay:-.32s}.spinner .bounce2{-webkit-animation-delay:-.16s;animation-delay:-.16s}@-webkit-keyframes bouncedelay{0%,100%,80%{-webkit-transform:scale(0)}40%{-webkit-transform:scale(1)}}@keyframes bouncedelay{0%,100%,80%{transform:scale(0);-webkit-transform:scale(0)}40%{transform:scale(1);-webkit-transform:scale(1)}}</style><title>我的课表</title><link type="text/css" rel="stylesheet" href="./我的课表_files/iconfont.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/iconfont(1).css"><link type="text/css" rel="stylesheet" href="./我的课表_files/bh-1.2.min.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/bh-scenes-1.2.min.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/animate.min.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/layer.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/base.css"><link type="text/css" rel="stylesheet" href="./我的课表_files/style.css"><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/bh_utils.js?rv=100003" src="./我的课表_files/bh_utils.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/amp/ampPlugins.min.js?rv=100003" src="./我的课表_files/ampPlugins.min.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/jqwidget/jqxwidget.min.js?rv=100003" src="./我的课表_files/jqxwidget.min.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/bhtc/moment/min/moment-with-locales.min.js?rv=100003" src="./我的课表_files/moment-with-locales.min.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/bhtc/sortable/Sortable.js?rv=100003" src="./我的课表_files/Sortable.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/bh-1.2.min.js?rv=100003" src="./我的课表_files/bh-1.2.min.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/emap-1.2.js?rv=100003" src="./我的课表_files/emap-1.2.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="https://res.xidian.edu.cn/fe_components/sentry/sentry.min.js?rv=100003" src="./我的课表_files/sentry.min.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="modules/xskcb/xskcb" src="./我的课表_files/xskcb.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kbck/kbck" src="./我的课表_files/kbck.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/zttk/zttk" src="./我的课表_files/zttk.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kblb/kblb" src="./我的课表_files/kblb.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kbck/rlkb/rlkb" src="./我的课表_files/rlkb.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kbck/printkb/printkb" src="./我的课表_files/printkb.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kbck/rlkb/rlkbBS" src="./我的课表_files/rlkbBS.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/zttk/zttkBS" src="./我的课表_files/zttkBS.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kblb/kblbBS" src="./我的课表_files/kblbBS.js.下载"></script><script type="text/javascript" charset="utf-8" async="" data-requirecontext="_" data-requiremodule="public/commonpage/kbck/printkb/printkbBS" src="./我的课表_files/printkbBS.js.下载"></script></head>
+
+<body style="overflow-y: scroll;"><header bh-header-guid="a921d732-3ec4-66fe-30ac-fcf3b5869bf2"><header class="bh-header sc-animated bh-normalHeader-show" bh-header-role="bhHeader"><div class="bh-headerBar"><div class="bh-headerBar-content bh-clearfix"><div style="display: none;" class="bh-headerBar-asideMenu" bh-header-role="bhAsideNavIcon"><i class="iconfont icon-menu"></i></div><div class="bh-headerBar-logo"><img src="./我的课表_files/logo.png"></div><div class="bh-headerBar-title">我的课表</div><div class="bh-headerBar-menu" style="width: 863px;"><div class="bh-headerBar-imgBlock"><img src="./我的课表_files/user.png" bh-header-role="bhHeaderUserInfoIcon"></div><div class="bh-headerBar-roleSwitch" bh-header-role="roleSwitch">本科生学生组</div><div class="bh-headerBar-nav-more" style=""><i class="iconfont icon-keyboardcontrol"></i></div><div class="bh-headerBar-navigate " style="width: 651px;"><a class="bh-hide" href="https://ehall.xidian.edu.cn/jwapp/sys/wdkb/*default/index.do?amp_sec_version_=1&amp;gid_=eWltSEtEZkhtRnFwbzQrNU1UaDVrcVFialpHcVo5QTQ1cHFFZm1ZaktqM090NmtMV2hjUzQ1T1RHcVBNK1haMmtaSGhVR1hJSllUNFFJQS9IT0FLNmc9PQ&amp;EMAP_LANG=zh&amp;THEME=cherry#/xskcb" bh-header-role="nav-214e68d5-cae9-b814-6e9e-a2704d8ff12c" style=""><div class="bh-headerBar-nav-item bh-active" title="学生课程表">学生课程表<i class="iconfont icon-keyboardarrowdown" style="display:none"></i></div><b class="bh-headerBar-nav-item-tip"></b></a><div class="bh-headerBar-nav-bar bh-single-animate" style="left: -1012.6px; width: 0px;"></div><div class="bh-headerBar-navBar-cover"></div></div></div></div></div></header><header class="bh-header-mini sc-animated bh-miniHeader-hide" bh-header-role="bhHeaderMini"><div class="bh-headerBar"><div class="bh-headerBar-content bh-clearfix"><div style="display: none;" class="bh-headerBar-asideMenu" bh-header-role="bhAsideNavIcon"><i class="iconfont icon-menu"></i></div><div class="bh-headerBar-logo"><img src="./我的课表_files/logo.png"></div><div class="bh-headerBar-title">我的课表</div><div class="bh-headerBar-menu" style="width: 863px;"><div class="bh-headerBar-imgBlock"><img src="./我的课表_files/user.png" bh-header-role="bhHeaderUserInfoIcon"></div><div class="bh-headerBar-roleSwitch" bh-header-role="roleSwitch">本科生学生组</div><div class="bh-headerBar-nav-more"><i class="iconfont icon-keyboardcontrol"></i></div><div class="bh-headerBar-navigate " style="width: 651px;"><a class="bh-hide" href="https://ehall.xidian.edu.cn/jwapp/sys/wdkb/*default/index.do?amp_sec_version_=1&amp;gid_=eWltSEtEZkhtRnFwbzQrNU1UaDVrcVFialpHcVo5QTQ1cHFFZm1ZaktqM090NmtMV2hjUzQ1T1RHcVBNK1haMmtaSGhVR1hJSllUNFFJQS9IT0FLNmc9PQ&amp;EMAP_LANG=zh&amp;THEME=cherry#/xskcb" bh-header-role="nav-214e68d5-cae9-b814-6e9e-a2704d8ff12c" style=""><div class="bh-headerBar-nav-item bh-active" title="学生课程表">学生课程表<i class="iconfont icon-keyboardarrowdown" style="display:none"></i></div><b class="bh-headerBar-nav-item-tip"></b></a><div class="bh-headerBar-nav-bar bh-single-animate" style="left: -1020.6px; width: 0px;"></div><div class="bh-headerBar-navBar-cover"></div></div></div></div></div></header><header class="bh-header-bg sc-animated bh-headerBg-show"></header></header><main><article bh-layout-role="single" style="min-height: 906px;">
+    <h2>课表查看<label id="dqxnxq2" class="bh-form-label jxrw-label-term" value="2024-2025-1">2024-2025学年第一学期</label><a class="jxrw-a-adjust" data-action="更改2">更改</a></h2>
+    <section>
+        <div class="bh-buttons">
+            <a href="javascript:void(0)" class="bh-btn bh-btn-small bh-btn-primary" id="print_button">打印</a>
+<!--             2019-06-05 01116336 隐藏下载按钮 -->
+<!--             <a href="javascript:void(0)" class="bh-btn bh-btn-small bh-btn-default" id="down_button">下载</a> -->
+            <a href="javascript:void(0)" class="bh-btn bh-btn-small bh-btn-default" id="kblb">列表模式</a>
+        <a class="bh-btn bh-btn-small bh-btn-default" id="lxkccx" data-action="漏选课程查询">漏选课程查询</a></div>
+        <div class="bh-mt-16 bh-pt-16">
+            <div class="bh-l-inline bh-pt-16" style="width:calc(100% - 290px);border-top:solid 1px #eee;margin:0 32px 0 0;">
+                <div style="position:relative;">
+                    <div class="bh-pb-16" style="width:150px;height:40px;margin:0 auto;text-align: center;">
+	                    <div data-action="周课表切换" style="display: none;">
+	                    	<i class="iconfont icon-keyboardarrowleft" data-action="周课表左移" style="cursor:pointer;border:solid 1px #2196f3;border-radius:8px;color:#2196f3;"></i>
+                        	<span class="bh-l-inline bh-color-primary bh-ph-4">第<label class="h2 bh-color-primary bh-l-inline bh-ph-4" id="zkbzc">8</label>周</span>
+                        	<i class="iconfont icon-keyboardarrowright" data-action="周课表右移" style="cursor:pointer;border:solid 1px #2196f3;border-radius:8px;color:#2196f3;"></i>
+	                    </div>
+                    </div>
+                    <div class="bh-color-primary" data-action="周课表学年学期" style="cursor: pointer; position: absolute; right: 0px; top: 0px; display: none;">学期课表</div>
+                    <div class="bh-color-primary" data-action="周课表周课表" style="cursor: pointer; position: absolute; right: 0px; top: 0px;">周课表</div>
+                </div>
+                <div id="print_area">
+                	<div id="kb_title" style="text-align: center;font-size: 20px;"></div>
+                	<div id="ry_infor"></div>
+                	<div id="kcb_container" class="d" style="height:3%;width:100%;"><div class="wut_container">      <table class="wut_table" onselectstart="return false"><tbody><tr>      <td class="mtt_bgcolor_grey" colspan="2">节次/星期</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="1">星期一</td>  <td class="mtt_bgcolor_grey highLight" style="width:13%" data-week="2">星期二</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="3">星期三</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="4">星期四</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="5">星期五</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="6">星期六</td>  <td class="mtt_bgcolor_grey" style="width:13%" data-week="7">星期日</td></tr> <tr><td class="mtt_bgcolor_grey" rowspan="4">上午</td>  <td class="mtt_bgcolor_grey" data-unit="1">1</td><td data-role="item" data-week="1" data-begin-unit="1" data-end-unit="2" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="2" data-begin-unit="1" data-end-unit="2" rowspan="2" class="highLight"><div class="mtt_arrange_item " style="background-color:#CCEAE7">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204124&nbsp;信息安全等级保护[01]</div>       <div class="mtt_item_jxbmc">曾勇</div>       <div class="mtt_item_room">1-2周,4周,6-8周,10-13周,星期2,1-2节,B-401</div>   </div></td><td data-role="item" data-week="3" data-begin-unit="1" data-end-unit="2" rowspan="2"><div class="mtt_arrange_item " style="background-color:#D3F4F8">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204121&nbsp;虚拟化与云计算技术[01]</div>       <div class="mtt_item_jxbmc">姚青松</div>       <div class="mtt_item_room">1-4周,6-11周,星期3,1-2节,C-428</div>   </div></td><td data-role="item" data-week="4" data-begin-unit="1" data-end-unit="2" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="5" data-begin-unit="1" data-end-unit="2" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="6" data-begin-unit="1" data-end-unit="2" rowspan="2"></td><td data-role="item" data-week="7" data-begin-unit="1" data-end-unit="2" rowspan="2"></td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="2">2</td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="3">3</td><td data-role="item" data-week="1" data-begin-unit="3" data-end-unit="4" rowspan="2"><div class="mtt_arrange_item " style="background-color:#FFDDD3">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204109&nbsp;工控安全[01]</div>       <div class="mtt_item_jxbmc">潘珂</div>       <div class="mtt_item_room">1-2周,4-5周,7-10周,星期1,3-4节,A-518</div>   </div></td><td data-role="item" data-week="2" data-begin-unit="3" data-end-unit="4" rowspan="2" class="highLight"><div class="mtt_arrange_item " style="background-color:#FCE0EA">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204117&nbsp;网络管理[01]</div>       <div class="mtt_item_jxbmc">刘志宏,蒋忠元</div>       <div class="mtt_item_room">1-2周,4周,6-8周,10-13周,星期2,3-4节,A-202</div>   </div></td><td data-role="item" data-week="3" data-begin-unit="3" data-end-unit="4" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="4" data-begin-unit="3" data-end-unit="4" rowspan="2"><div class="mtt_arrange_item " style="background-color:#E8F3DB">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204110&nbsp;FPGA基础[01]</div>       <div class="mtt_item_jxbmc">吕敏杰</div>       <div class="mtt_item_room">1-4周,6-11周,星期4,3-4节,C-429</div>   </div></td><td data-role="item" data-week="5" data-begin-unit="3" data-end-unit="4" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="6" data-begin-unit="3" data-end-unit="4" rowspan="2"><div class="mtt_arrange_item " style="background-color:#FFDDD3">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204109&nbsp;工控安全[01]</div>       <div class="mtt_item_jxbmc">潘珂</div>       <div class="mtt_item_room">6周,星期6,3-4节,A-518</div>   </div><div class="mtt_arrange_item " style="background-color:#FFDDD3">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204109&nbsp;工控安全[01]</div>       <div class="mtt_item_jxbmc">潘珂</div>       <div class="mtt_item_room">2周,星期6,3-4节,A-518</div>   </div></td><td data-role="item" data-week="7" data-begin-unit="3" data-end-unit="4" rowspan="2"></td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="4">4</td></tr> <tr><td class="mtt_bgcolor_grey" rowspan="4">下午</td>  <td class="mtt_bgcolor_grey" data-unit="5">5</td><td data-role="item" data-week="1" data-begin-unit="5" data-end-unit="6" rowspan="2"><div class="mtt_arrange_item mtt_tzkc" style="background-color:undefined">       <div class="mtt_item_tzkcicon">           <img src="./我的课表_files/u422.png">       </div>       <div class="mtt_item_kcmc">CE204108&nbsp;大数据分析与安全[01]</div>       <div class="mtt_item_jxbmc">李玥</div>       <div class="mtt_item_room">1-2周,4-5周,7-10周,星期1,5-6节,A-518</div>   </div></td><td data-role="item" data-week="2" data-begin-unit="5" data-end-unit="6" rowspan="2" class="highLight"><div class="mtt_arrange_item " style="background-color:#FFF0CC">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">TS001004-18&nbsp;工程概论(IV)[01]</div>       <div class="mtt_item_jxbmc">曹雪菲</div>       <div class="mtt_item_room">1-2周,4周,6-8周,10-11周,星期2,5-6节,D-206</div>   </div></td><td data-role="item" data-week="3" data-begin-unit="5" data-end-unit="6" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="4" data-begin-unit="5" data-end-unit="6" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="5" data-begin-unit="5" data-end-unit="6" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="6" data-begin-unit="5" data-end-unit="6" rowspan="2"><div class="mtt_arrange_item mtt_tzkc" style="background-color:undefined">       <div class="mtt_item_tzkcicon">           <img src="./我的课表_files/u422.png">       </div>       <div class="mtt_item_kcmc">CE204108&nbsp;大数据分析与安全[01]</div>       <div class="mtt_item_jxbmc">李玥</div>       <div class="mtt_item_room">6周,星期6,5-6节,A-518</div>   </div><div class="mtt_arrange_item mtt_tzkc" style="background-color:undefined">       <div class="mtt_item_tzkcicon">           <img src="./我的课表_files/u422.png">       </div>       <div class="mtt_item_kcmc">CE204108&nbsp;大数据分析与安全[01]</div>       <div class="mtt_item_jxbmc">李玥</div>       <div class="mtt_item_room">2周,星期6,5-6节,A-518</div>   </div></td><td data-role="item" data-week="7" data-begin-unit="5" data-end-unit="6" rowspan="2"></td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="6">6</td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="7">7</td><td data-role="item" data-week="1" data-begin-unit="7" data-end-unit="8" rowspan="2"><div class="mtt_arrange_item " style="background-color:#DDE4FE">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204114&nbsp;软件逆向工程[02]</div>       <div class="mtt_item_jxbmc">孙聪</div>       <div class="mtt_item_room">1-2周,4-5周,7-10周,星期1,7-8节,C-424</div>   </div></td><td data-role="item" data-week="2" data-begin-unit="7" data-end-unit="8" rowspan="2" class="highLight"><div class="mtt_arrange_item " style="background-color:#D3EAFD">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204129&nbsp;实用安全[01]</div>       <div class="mtt_item_jxbmc">曹雪菲</div>       <div class="mtt_item_room">1-2周,4周,6-8周,10-13周,星期2,7-8节,C-428</div>   </div></td><td data-role="item" data-week="3" data-begin-unit="7" data-end-unit="8" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="4" data-begin-unit="7" data-end-unit="8" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="5" data-begin-unit="7" data-end-unit="8" rowspan="2"><div class="mtt_arrange_item " style="background-color:#FFEACC">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">MC006005-7&nbsp;形势与政策(Ⅶ)[33]</div>       <div class="mtt_item_jxbmc">黄博</div>       <div class="mtt_item_room">13-16周,星期5,7-8节,信远I-221</div>   </div></td><td data-role="item" data-week="6" data-begin-unit="7" data-end-unit="8" rowspan="2"><div class="mtt_arrange_item " style="background-color:#DDE4FE">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204114&nbsp;软件逆向工程[02]</div>       <div class="mtt_item_jxbmc">孙聪</div>       <div class="mtt_item_room">2周,星期6,7-8节,C-424</div>   </div><div class="mtt_arrange_item " style="background-color:#DDE4FE">       <div class="mtt_item_tzkcicon">       </div>       <div class="mtt_item_kcmc">CE204114&nbsp;软件逆向工程[02]</div>       <div class="mtt_item_jxbmc">孙聪</div>       <div class="mtt_item_room">6周,星期6,7-8节,C-424</div>   </div></td><td data-role="item" data-week="7" data-begin-unit="7" data-end-unit="8" rowspan="2"></td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="8">8</td></tr> <tr><td class="mtt_bgcolor_grey" rowspan="2">晚上</td>  <td class="mtt_bgcolor_grey" data-unit="9">9</td><td data-role="item" data-week="1" data-begin-unit="9" data-end-unit="10" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="2" data-begin-unit="9" data-end-unit="10" rowspan="2" class="highLight"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="3" data-begin-unit="9" data-end-unit="10" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="4" data-begin-unit="9" data-end-unit="10" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="5" data-begin-unit="9" data-end-unit="10" rowspan="2"><div class="mtt_arrange_item" style="background: lightskyblue" ;=""><div class="mtt_item_zixi">自习</div></div></td><td data-role="item" data-week="6" data-begin-unit="9" data-end-unit="10" rowspan="2"></td><td data-role="item" data-week="7" data-begin-unit="9" data-end-unit="10" rowspan="2"></td></tr> <tr>  <td class="mtt_bgcolor_grey" data-unit="10">10</td></tr>      </tbody></table>  </div></div>
+                </div>
+            </div>
+            <div id="wptk_contaner" class="bh-l-inline " style="width:250px;vertical-align:top; ">    <div class="bh-mb-16 ">
+        <div class="bh-col-md-12 bh-form-groupname sc-title-borderLeft bh-mb-16 " title="上课时间暂未确定的课程 "><a class="bh-color-grey " href="javascript:void(0); ">上课时间暂未确定的课程</a></div>
+        <div style="height:245px;overflow:auto;">
+             <div class="kbck-card-unset bh-ph-16 bh-pv-16 " style="border:solid 1px #bbb; ">
+             	<div><span class="bh-l-inline ">编译原理</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">CE204142</span></div>
+                	<div><span class="bh-l-inline ">上课周次</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">2-17周</span></div>
+                	<div><span class="bh-l-inline ">上课教师</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">付玉龙</span></div>
+             </div>
+             <div class="kbck-card-unset bh-ph-16 bh-pv-16 " style="border:solid 1px #bbb; ">
+             	<div><span class="bh-l-inline ">信息安全专业综合实验</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">CE205009</span></div>
+                	<div><span class="bh-l-inline ">上课周次</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">2-17周</span></div>
+                	<div><span class="bh-l-inline ">上课教师</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">苗银宾</span></div>
+             </div>
+        </div>
+    </div>
+    <div class="bh-mv-16 ">
+        <div class="bh-col-md-12 bh-form-groupname sc-title-borderLeft bh-mb-16 " title="调课信息 "><a class="bh-color-grey " href="javascript:void(0); ">调课信息</a></div>
+        <div style="height:245px;overflow:auto;">
+            <div class="kbck-card-adjust ">
+                 <div class="kbck-card-unset bh-ph-16 bh-pv-16 " style="border:solid 1px #bbb; ">
+                 	<div><span class="bh-l-inline ">大数据分析与安全</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">CE204108</span></div>
+                    	<div><span class="bh-l-inline ">调课信息</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">从7-10周星期1的5-6节调整为7-10周星期1的5-6节,A-518</span></div>
+                    	
+                    	
+                	<div><span class="bh-l-inline ">上课教师</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">李玥/7025变更为宋祁朋/7026</span></div>
+                
+                 </div>
+                 <div class="kbck-card-unset bh-ph-16 bh-pv-16 " style="border:solid 1px #bbb; ">
+                 	<div><span class="bh-l-inline ">大数据分析与安全</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">CE204108</span></div>
+                    	<div><span class="bh-l-inline ">调课信息</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">从6周星期6的5-6节调整为10周星期3的7-8节,A-518</span></div>
+                    	
+                    	
+                	<div><span class="bh-l-inline ">上课教师</span><span class="bh-l-inline bh-color-caption bh-ph-16 kbck-card-content ">李玥/7025变更为李玥/7025</span></div>
+                
+                 </div>
+            </div>
+        </div>
+        <a href="https://ehall.xidian.edu.cn/jwapp/sys/wdkb/*default/index.do?amp_sec_version_=1&amp;gid_=eWltSEtEZkhtRnFwbzQrNU1UaDVrcVFialpHcVo5QTQ1cHFFZm1ZaktqM090NmtMV2hjUzQ1T1RHcVBNK1haMmtaSGhVR1hJSllUNFFJQS9IT0FLNmc9PQ&amp;EMAP_LANG=zh&amp;THEME=cherry#" id="zttk_zc">查看整体调课</a>
+    </div>
+</div>
+        </div>
+    </section>
+</article>
+</main><footer bh-footer-role="footer" class="bh-footer"><div class="bh-footer-content">版权信息：copyright© 西安电子科技大学版权所有 地址：西安市雁塔区太白南路2号/长安区西沣路266号</div></footer>
+
+
+
+  <div class="app-ajax-loading jqx-widget jqx-loader jqx-rc-all jqx-fill-state-normal jqx-rc-t jqx-rc-b jqx-popup" style="position: fixed; z-index: 30000; background-color: rgba(0, 0, 0, 0); width: 300px; height: 60px; display: none;" id="jqxWidget54039efe"><div class="bh-loader-icon-line  bh-loader-icon-line-border"><i></i><i></i><i></i><i></i><i></i></div></div><div class="app-loading"><div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div></div><div id="bh-eventWindow"></div><div class="bh-headerBar-roleBox bh-card bh-card-lv3 bh-headerBar-popupBox-animate" bh-header-role="roleBox"><div class="bh-headerBar-roleBox-explain bh-headerBar-roleBox-title">选择角色</div><div class="bh-headerBar-roleBox-title"><a id="20161114165154340" href="javascript:void(0);">本科生学生组</a></div></div><div class="bh-headerBar-userIfon bh-headerBar-popupBox-animate bh-card bh-card-lv3" bh-header-role="bhHeaderBarInfoBox"><div class="bh-headerBar-userInfo-img"><img src="./我的课表_files/user.png"></div><div class="bh-headerBar-userInfo-detail"></div></div><div bh-header-more-guid="a921d732-3ec4-66fe-30ac-fcf3b5869bf2" class="bh-header-navMoreBox" bh-header-role="navMoreBox" style="height: 0px;"><div class="bh-header-navMoreBox-bar bh-animate-fast bh-animate-top"></div></div></body></html>

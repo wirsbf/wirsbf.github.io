@@ -1,0 +1,1986 @@
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			exports: {},
+/******/ 			id: moduleId,
+/******/ 			loaded: false
+/******/ 		};
+
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+
+
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(0);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var param = __webpack_require__(3);
+	var upload = __webpack_require__(4);
+	var result = __webpack_require__(2);
+
+	/**
+	 * 1. upload.js		导入首页
+	 * 2. preview.js	根据sheet预览数据页面
+	 * 3. mapping.js	字段映射配置页面
+	 * 4. handle.js		选择处理机制页面
+	 * 5. final.js		校验结果查看页面
+	 */
+
+	//---------------------------------------------------------------------
+
+	/**
+	 * 定义导入对象
+	 * @type {Object}
+	 */
+	var zeroImporter2 = {};
+
+	/**
+	 * 调用导入的main方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	zeroImporter2.show = function(opt) {
+		// 初始化参数
+		var params = param.extend(opt);
+		// 验证参数
+		param.checkParams(params, ['app', 'impId']);
+
+		util.getDataRoleId(params, function(dataRoleId) {
+			params.dataRoleId = dataRoleId;
+
+			// 加载导入配置
+			util.loadImportConfig(params, function(r) {
+				result.importConfig = r.importConfig;
+
+				// 渲染上传的首页面
+				upload.render(params);
+			});
+		});
+	};
+
+	window.zeroImporter = zeroImporter2;
+
+/***/ },
+/* 1 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var result = __webpack_require__(2);
+
+	/**
+	 * 公共方法的对象
+	 * @type {Object}
+	 */
+	var util = {};
+
+	/**
+	 * 生成UUID
+	 * @return {[type]} [description]
+	 */
+	util.getUuid = function() {
+		var s = [];
+		var hexDigits = "0123456789abcdef";
+		for (var i = 0; i < 36; i++) {
+			s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+		}
+		s[14] = "4";
+		s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);
+		s[8] = s[13] = s[18] = s[23] = "";
+		var uuid = s.join("");
+		return uuid;
+	};
+
+	/**
+	 * 获取IE版本号
+	 * @return {[type]} [description]
+	 */
+	util.getIEVersion = function() {
+		var version;
+		if (navigator.userAgent.indexOf("MSIE") > 0) {
+			if (navigator.userAgent.indexOf("MSIE 6.0") > 0) {
+				version = 6;
+			}
+			if (navigator.userAgent.indexOf("MSIE 7.0") > 0) {
+				version = 7;
+			}
+			if (navigator.userAgent.indexOf("MSIE 9.0") > 0 && !window.innerWidth) {
+				version = 8;
+			}
+			if (navigator.userAgent.indexOf("MSIE 9.0") > 0) {
+				version = 9;
+			}
+			if (navigator.userAgent.indexOf("MSIE 10.0") > 0) {
+				version = 10;
+			}
+		}
+		return version;
+	};
+
+	/**
+	 * 弹出提示对话框
+	 * @param  {[type]} content [description]
+	 * @param  {[type]} title   [description]
+	 * @return {[type]}         [description]
+	 */
+	util.alert = function(content, title) {
+		BH_UTILS.bhDialogWarning({
+			title: title || '提示',
+			content: content,
+			buttons: [{
+				text: '知道了',
+				callback: function() {}
+			}]
+		});
+	};
+
+	/**
+	 * 弹出危险对话框
+	 * @param  {[type]} content [description]
+	 * @param  {[type]} title   [description]
+	 * @return {[type]}         [description]
+	 */
+	util.danger = function(content, title) {
+		BH_UTILS.bhDialogDanger({
+			title: title || '提示',
+			content: content,
+			buttons: [{
+				text: "确定",
+				callback: function() {}
+			}]
+		});
+	};
+
+	/**
+	 * 成功提示
+	 */
+	util.success = function(content) {
+		$.bhTip({
+			content: content,
+			state: 'success'
+		});
+	};
+
+	/**
+	 * 确认提示
+	 */
+	util.confirm = function(content, title, okFn) {
+		if (arguments.length === 2 && typeof title === 'function') {
+			okFn = title;
+			title = undefined;
+		}
+
+		BH_UTILS.bhDialogWarning({
+			title: title || '提示',
+			content: content || '确认操作？',
+			buttons: [{
+				text: '确认',
+				callback: function() {
+					if (typeof okFn === 'function') {
+						okFn();
+					}
+				}
+			}, {
+				text: '取消',
+				callback: function() {}
+			}]
+		});
+	};
+
+	/**
+	 * 获取用户数据角色
+	 */
+	util.getDataRoleId = function(opt, afterFn) {
+		$.ajax({
+			url: opt.getDataRoleIdUrl,
+			dataType: 'json',
+			type: 'post',
+			data: {
+				app: opt.app
+			},
+			success: function(r) {
+				if (typeof afterFn === 'function') {
+					afterFn(r.dataRoleId);
+				}
+			}
+		});
+	};
+
+	/**
+	 * 加载导入配置信息
+	 */
+	util.loadImportConfig = function(opt, afterFn) {
+		$.ajax({
+			url: opt.loadImportConfigUrl,
+			dataType: 'json',
+			type: 'get',
+			success: function(r) {
+				if (typeof afterFn === 'function') {
+					afterFn(r);
+				}
+			}
+		});
+	};
+
+
+	/**
+	 * 模板解析
+	 * @param  {[type]} template [description]
+	 * @param  {[type]} context  [description]
+	 * @return {[type]}          [description]
+	 */
+	util.convertRender = function(template, context) {
+		var tokenReg = /(\\)?\{{([^\{\}\\]+)(\\)?\}}/g;
+		return template.replace(tokenReg, function(word, slash1, token, slash2) {
+			if (slash1 || slash2) {
+				return word.replace('\\', '');
+			}
+			var variables = token.replace(/\s/g, '').split('.');
+			var currentObject = context;
+			var i, length, variable;
+			for (i = 0; i < variables.length; i++) {
+				variable = variables[i];
+				currentObject = currentObject[variable];
+				if (currentObject === undefined || currentObject === null) {
+					return '';
+				}
+			}
+			return currentObject;
+		});
+	};
+
+	/**
+	 * 构建请求后台的参数对象
+	 * @param  {[type]} params [description]
+	 * @param  {[type]} type [description]
+	 * @param  {[type]} appendObj [description]
+	 * @return {[type]}        [description]
+	 */
+	util.buildAjaxParams = function(params, type, appendObj) {
+		var p = {
+			app: params['app'],
+			impId: params['impId'],
+			lx: type
+		};
+		if (appendObj !== undefined) {
+			return $.extend(p, appendObj);
+		}
+		return p;
+	};
+
+	/**
+	 * 是否为空
+	 * @param  {[type]}  obj [description]
+	 * @return {Boolean}     [description]
+	 */
+	util.isBlank = function(obj) {
+		return obj === undefined || obj === null || obj === '';
+	}
+
+	/**
+	 * 输出内容转换
+	 * @param  {[type]} obj [description]
+	 * @return {[type]}     [description]
+	 */
+	util.strOf = function(obj) {
+		return util.isBlank(obj) ? '' : obj;
+	};
+
+	/**
+	 * 关闭临时弹出层
+	 * @return {[type]} [description]
+	 */
+	util.closeTempModal = function() {
+		// 先关闭前面的modal
+		if (result.tempModalUnique !== undefined) {
+			zeroModal.close(result.tempModalUnique);
+		}
+	};
+
+	module.exports = util;
+
+/***/ },
+/* 2 */
+/***/ function(module, exports) {
+
+	/**
+	 * 记录临时结果的对象
+	 * @type {Object}
+	 */
+	var result = {
+		tempSheets: [], // 导入文件的sheet信息
+		tempfilepath: '', // 导入文件的临时路径
+		tempCurSheetIndex: 0, // 导入的文件当前的sheet页下标
+		tempHeader: [], // 导入文件的头部
+		tempData: {}, // 导入方案集合，导入配置等
+		tempCurDrfawid: undefined, // 当前选择的导入方案Wid
+		tempDrfazdxx: {}, // 导入方案的字段信息
+		tempHandle: {}, // 导入的处理机制
+		tempTableName: '', // 导入的临时表名
+		tempResult: {}, // 导入临时表返回的结果
+		tempPrimaryKeyObj: {}, // 导入的字段（主键）
+		tempRequireFieldsObj: {}, // 导入的字段（必填字段）
+		importConfig: {}, // 导入的配置（imp.xml）
+
+		type: 'excel', // 导入的文件类型
+		tempModalUnique: undefined, // 模态框唯一值
+		tempLoadingUnique: undefined, // 等待框唯一值
+		tempMappingGrid: undefined, // 字段映射Grid对象
+		rzWid: undefined, // 日志WID
+
+		/**
+		 * 用于存储字段映射表格中的数据
+		 * @type 
+		 * {
+		 *       XH: {SFXZ:1, ZHLX:'0', ZHGSHZ:'', YLMC:'学号11'},
+		 *       XM: {SFXZ:0, ZHLX:'0', ZHGSHZ:'', YLMC:''},
+		 *       XBM: {SFXZ:1, ZHLX:'3', ZHGSHZ:'1', YLMC:'性别'},
+		 * }
+		 */
+		tempMappingGridResult: {},
+		/**
+		 * 导入时的字段信息（第三步到第四步）
+		 * @type [
+		 *       { convertType: "0", convertValue: "", field: "XH", fieldName: "学号", length: "200", originCol: "学号", type: "1"},
+		 *       { convertType: "0", convertValue: "", field: "XM", fieldName: "姓名", length: "200", originCol: "姓名", type: "1"}
+		 * ]
+		 */
+		tempImportFields: [], // 
+
+		////////////////////////////////////////////////////////////////////////////////////
+
+		/**
+		 * 将导入字段映射表的数据转换成可以存向后台的数据格式
+		 * @return {[type]} [description]
+		 */
+		convertTempMappingGridResult: function() {
+			var res = [];
+			for (var key in this.tempMappingGridResult) {
+				if (this.tempMappingGridResult.hasOwnProperty(key)) {
+					res.push({
+						zdm: key,
+						zhlx: this.tempMappingGridResult[key].SFXZ == '1' ? this.tempMappingGridResult[key].ZHLX : '',
+						sfxz: this.tempMappingGridResult[key].SFXZ,
+						ylmc: this.tempMappingGridResult[key].SFXZ == '1' ? this.tempMappingGridResult[key].YLMC : '',
+						zhgshz: this.tempMappingGridResult[key].SFXZ == '1' ? this.tempMappingGridResult[key].ZHGSHZ : ''
+					})
+				}
+			}
+			return res;
+		}
+	};
+
+	module.exports = result;
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// --- 加载依赖 ---
+	var util = __webpack_require__(1);
+
+	var param = {};
+
+	var path_ggf = window.location.href;
+	var end_ggf = path_ggf.indexOf('/sys/');
+	var context_path = path_ggf.substring(0, end_ggf);
+
+	/**
+	 * 默认参数
+	 * @type {Object}
+	 */
+	param.defaultOpt = {
+		title: '数据导入',
+		app: '',
+		impId: '',
+		maxSelectFiledsCount: 0, // 最多只能选择多少个字段
+		// 上传导入的文件的URL
+		uploadUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/uploadExcel/{{app}}/{{impId}}.do',
+		// 下载导入的模板的URL
+		downloadTemplateUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/downloadExcelTemplate/{{app}}/{{impId}}.do',
+		// 下载导入的模板及字典的URL
+		downloadTemplateAndDicUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/downloadExcelTemplateAndDicInfo/{{app}}/{{impId}}.do',
+		// 加载导入的excel或dbf的数据
+		loadDataUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/getDatas.do',
+		// 加载导入的字段及方案数据的URL
+		getImportInfoUrl: {
+			debug: 'http://localhost:3001/examples/json/zero-importer-info.json',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/getImportInfos.do'
+		},
+		getDrfazdxxsUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/getDrfazdxxs.do',
+		// 导入临时表及验证的URL
+		importTempTableAndValidateUrl: {
+			debug: '',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/importTempTableAndValidate.do'
+		},
+		loadImportResultUrl: {
+			debug: '',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/loadImportResult.do'
+		},
+		// 下载不通过的数据的URL
+		downloadErrorDataUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/downloadErrorData/{{app}}/{{impId}}.do',
+		// 移除导入方案的URL
+		removeDrfaUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/removeDrfa.do',
+		// 保存导入方案的URL
+		saveDrfaUrl: {
+			debug: 'http://localhost:3001/examples/json/zeroExporter-data2.json',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/saveDrfa.do'
+		},
+		// 更新导入方案的URL
+		updateDrfaUrl: {
+			debug: 'http://localhost:3001/examples/json/zeroExporter-data2.json',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/updateDrfa.do'
+		},
+		// 执行导入的URL
+		doImportUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/doImport/{{app}}/{{impId}}.do',
+		getProgressUrl: {
+			debug: '',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/getProgress.do'
+		},
+		clearProgressUrl: {
+			debug: '',
+			normal: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/clearProgress.do'
+		},
+		getDataRoleIdUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/exportX/jwExport/getDataRoleId.do',
+		loadImportConfigUrl: (window.WIS_CONFIG ? context_path : '') + '/sys/jwpubapp/jwImport/loadImportConfig/{{app}}/{{impId}}.do',
+		// 导入完成后执行的函数
+		okFn: undefined,
+		okTitle: '确定',
+		otherParam: undefined,
+		maxSize: 20971520 * 2, // 导入的文件默认大小20 mb *2
+	};
+
+	/**
+	 * 初始化参数
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	param.extend = function(opt) {
+		var params = {};
+		$.extend(params, param.defaultOpt);
+		$.extend(params, opt);
+
+		// 对url进行处理
+		params.uploadUrl = util.convertRender(params.uploadUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		params.downloadTemplateUrl = util.convertRender(params.downloadTemplateUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		params.downloadTemplateAndDicUrl = util.convertRender(params.downloadTemplateAndDicUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		params.downloadErrorDataUrl = util.convertRender(params.downloadErrorDataUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		params.doImportUrl = util.convertRender(params.doImportUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		params.loadImportConfigUrl = util.convertRender(params.loadImportConfigUrl, {
+			app: params.app,
+			impId: params.impId
+		});
+		return params;
+	};
+
+	param.checkParams = function(opt, properties) {
+		for (var i = 0; i < properties.length; i++) {
+			var p = properties[i];
+			if (opt[p] === undefined || opt[p] === '') {
+				console.warn('参数“' + p + '”不能为空!');
+			}
+		}
+	}
+
+	module.exports = param;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var result = __webpack_require__(2);
+	var preview = __webpack_require__(5);
+
+	/**
+	 * 导入首页
+	 * @type {Object}
+	 */
+	var upload = {};
+
+	/**
+	 * 渲染方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	upload.render = function(opt) {
+		var _this = this;
+
+		// 先关闭前面的modal
+		util.closeTempModal();
+
+		// 构建下载模板地址
+		var downloadTemplateUrl = opt.downloadTemplateUrl;
+		if (opt.otherParam !== undefined) {
+			downloadTemplateUrl += (downloadTemplateUrl.indexOf('?') !== -1 ? '&' : '?') + 'otherParam=' + DES.strEncSimple(opt.otherParam);
+		}
+
+		var downloadTemplateAndDicUrl = opt.downloadTemplateAndDicUrl;
+		if (opt.otherParam !== undefined) {
+			downloadTemplateAndDicUrl += (downloadTemplateAndDicUrl.indexOf('?') !== -1 ? '&' : '?') + 'otherParam=' + DES.strEncSimple(opt.otherParam);
+		}
+
+		// 构建显示内容
+		/*var html = `
+		<div>
+			<div id="zeroImporterDiv" style="margin-top:36px"></div>
+			<div>
+				<a id="zeroImporterDownloadTpl" role-url="{{downloadTemplateUrl}}" href="javascript:void(0);" class="zero-importer-a" style="margin-top:12px;float:right;">下载导入模板</a>
+				<iframe id="zeroImporterDownloadIframe" style="display:none"></iframe>
+			</div>
+		</div>
+		`;*/
+		// 兼容ie
+		var html = '<div>';
+		html += '		<div id="zeroImporterDiv"style="margin-top:36px"></div>';
+		html += '		<div id="zeroImporterDownDiv1" style="margin-top:12px;float:right;">';
+		html += '			<a role="zeroImporterDownloadTpl" role-url="{{downloadTemplateUrl}}" href="javascript:void(0);" class="zero-importer-a">下载导入模板</a>';
+		html += '			&nbsp;<span class="bh-color-warning-2">|</span>&nbsp;<a role="zeroImporterDownloadTpl" role-url="{{downloadTemplateAndDicUrl}}" href="javascript:void(0);" class="zero-importer-a">下载导入模板[包含字典]</a>';
+		html += '			<iframe id="zeroImporterDownloadIframe"style="display:none"></iframe>';
+		html += '		</div>';
+		html += '		<div id="zeroImporterDownDiv2" class="bh-color-info-2" style="display:none;margin-top:12px;float:right;"></div>';
+		html += '	</div>';
+
+		// 打开弹出框
+		result.tempModalUnique = zeroModal.show({
+			title: '<span class="zero-exporter-modaltitle">' + opt.title + ' (1/5)</span>',
+			content: Mustache.render(html, {
+				downloadTemplateUrl: downloadTemplateUrl,
+				downloadTemplateAndDicUrl: downloadTemplateAndDicUrl
+			}),
+			width: '600px',
+			height: '280px',
+			cancel: true,
+			cancelTitle: '取消'
+		});
+
+		// 获取浏览器IE的版本，如果是IE，并且在IE10以下，则切换上传组件
+		var _browserVersion = util.getIEVersion();
+		if (_browserVersion !== undefined && _browserVersion <= 9) {
+			$('#zeroImporterDiv').html('<div class="file-upload-container"><input id="file1" name="file1" type="file">（请选择需要导入的xls或xlsx或dbf格式文件）</div>');
+			$('#file1').change(function() {
+				var suffix = $('#file1').val().substring($('#file1').val().lastIndexOf('.') + 1, $('#file1').val().length);
+				if (suffix.toLowerCase() !== 'xlsx' && suffix.toLowerCase() !== 'xls' && suffix.toLowerCase() !== 'dbf') {
+					util.alert('只能是后缀为xls或dbf的文件', '文件格式有误！');
+					return;
+				}
+
+				$.ajaxFileUpload({
+					url: opt.uploadUrl + (opt.uploadUrl.indexOf('?') !== -1 ? '&' : '?') + '_=' + new Date().getTime(), //用于文件上传的服务器端请求地址
+					secureuri: false, //是否需要安全协议，一般设置为false
+					fileElementId: 'file1', //文件上传域的ID
+					dataType: 'json', //返回值类型 一般设置为json
+					success: function(data, status) {
+						// 上传完成后，将返回的sheet信息存在到临时变量tempSheets中
+						if (result.type === 'excel') {
+							result.tempSheets = data.sheets;
+						}
+						result.tempfilepath = data.tempfilepath;
+
+						// 进入预览页面（2/6）
+						preview.render(opt);
+						// 关闭等待层
+						zeroModal.close(result.tempLoadingUnique);
+					},
+					error: function(data, status, e) {
+						alert(e);
+					}
+				});
+			});
+
+		} else {
+			// 绑定第三方上传组件
+			$("#zeroImporterDiv").dropper({
+				action: opt.uploadUrl + (opt.uploadUrl.indexOf('?') !== -1 ? '&' : '?') + '_=' + new Date().getTime(),
+				label: "拖放或单击选中需要导入的文件(.xls或.xlsx或.dbf)",
+				postKey: "file1",
+				maxQueue: 1,
+				maxSize: opt.maxSize,
+				check: function(files) {
+					for (var i = 0; i < files.length; i++) {
+						var name = files[i].name;
+						var suffix = name.substring(name.lastIndexOf('.') + 1, name.length).toLowerCase();
+						if (suffix === 'xls' || suffix === 'xlsx') {
+							result.type = 'excel';
+						} else if (suffix === 'dbf') {
+							result.type = 'dbf';
+						} else {
+							util.alert('只能是后缀为xls或.xlsx或dbf的文件', '文件格式有误！');
+							// 重新加载此页面
+							_this.render(opt);
+							return false;
+						}
+					}
+					return true;
+				}
+			}).on("start.dropper", onStart).on("fileComplete.dropper", onComplete).on("fileError.dropper", onError);
+
+			function onStart(e, files) {
+				result.tempLoadingUnique = zeroModal.loading(4);
+			}
+
+			function onError(e, files, msg) {
+				util.danger(msg, '导入文件出错');
+
+				// 关闭等待层
+				zeroModal.close(result.tempLoadingUnique);
+				// 重新加载此页面
+				_this.render(opt);
+				return;
+			}
+
+			function onComplete(e, files, data) {
+				if (typeof data !== 'object') {
+					data = JSON.parse(data);
+				}
+
+				if (data.logId !== undefined && data.msg !== undefined) {
+					util.alert('建议先下载导入模板，再修改模板内容进行导入', '导入文件出错');
+
+					// 关闭等待层
+					zeroModal.close(result.tempLoadingUnique);
+					// 重新加载此页面
+					_this.render(opt);
+					return;
+				}
+
+				// 上传完成后，将返回的sheet信息存在到临时变量tempSheets中
+				if (result.type === 'excel') {
+					result.tempSheets = data.sheets;
+				}
+				result.tempfilepath = data.tempfilepath;
+
+				// 进入预览页面（2/6）
+				preview.render(opt);
+				// 关闭等待层
+				zeroModal.close(result.tempLoadingUnique);
+			}
+		}
+
+		// 下载模板
+		$('[role="zeroImporterDownloadTpl"]').click(function() {
+			$('#zeroImporterDownloadIframe').attr('src', $(this).attr('role-url'));
+			// 倒计时，控制重复点击下载
+			$('#zeroImporterDownDiv1').hide();
+			$('#zeroImporterDownDiv2').html('开始下载中...');
+			$('#zeroImporterDownDiv2').show();
+			resetTime(30, function(m, s) {
+				$('#zeroImporterDownDiv2').html(s + '秒后可再次下载');
+			}, function() {
+				$('#zeroImporterDownDiv2').hide();
+				$('#zeroImporterDownDiv1').show();
+			});
+		});
+	};
+
+	//单纯分钟和秒倒计时
+	function resetTime(time, fn, afterFn) {
+		var timer = null;
+		var t = time;
+		var m = 0;
+		var s = 0;
+		m = Math.floor(t / 60 % 60);
+		m < 10 && (m = '0' + m);
+		s = Math.floor(t % 60);
+
+		function countDown() {
+			s--;
+			s < 10 && (s = '0' + s);
+			if (s.length >= 3) {
+				s = 59;
+				m = "0" + (Number(m) - 1);
+			}
+			if (m.length >= 3) {
+				m = '00';
+				s = '00';
+				clearInterval(timer);
+				if (typeof afterFn === 'function') {
+					afterFn();
+				}
+			}
+			// console.log(m + "分钟" + s + "秒");
+			if (typeof fn === 'function') {
+				fn(parseInt(m), parseInt(s));
+			}
+		}
+		timer = setInterval(countDown, 1000);
+	}
+
+	module.exports = upload;
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var result = __webpack_require__(2);
+
+	/**
+	 * 根据sheet预览数据页面
+	 * @type {Object}
+	 */
+	var preview = {};
+
+	/**
+	 * 渲染方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	preview.render = function(opt) {
+		// 先关闭前面的modal
+		util.closeTempModal();
+
+		// 创建新的modal
+		result.tempModalUnique = zeroModal.show({
+			title: '导入 ' + result.type + ' (2/5)',
+			content: '<div id="zeroImporterContainer"></div>',
+			width: '720px',
+			height: '500px',
+			max: true,
+			buttons: [{
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '上一步',
+				attr: 'id="backBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '下一步',
+				attr: 'id="nextBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '取消',
+				attr: 'id="cancelBtn"'
+			}]
+		});
+
+		// 渲染显示内容
+		/*var html = `
+			<div>
+				<input type="hidden" id="importType" value="{{type}}" />
+				<select id="zeroImporterSheet" class="zero-exporter-select" style="margin-right:8px;">{{#sheets}}<option value="{{index}}">{{name}}</option>{{/sheets}}</select>预览前20行记录
+				<div id="zeroImporterDataContainer" style="margin-top:8px;"></div>
+			</div>
+		`;*/
+		var html = '<div><input type="hidden"id="importType"value="{{type}}"/><select id="zeroImporterSheet"class="zero-exporter-select"style="margin-right:8px;">{{#sheets}}<option value="{{index}}">{{name}}</option>{{/sheets}}</select>预览前20行记录<div id="zeroImporterDataContainer"style="margin-top:8px;"></div></div>';
+		$('#zeroImporterContainer').html(Mustache.render(html, {
+			type: result.type,
+			sheets: result.tempSheets
+		}));
+		$('#zeroImporterDataContainer').css('max-height', $('[zero-unique-body="' + result.tempModalUnique + '"]').height() + 'px');
+
+		// 如果导入的文件是DBF类型，则隐藏切换sheet页的下拉框
+		if (result.type === 'dbf') {
+			$('#zeroImporterSheet').hide();
+		}
+
+		// 绑定并调用sheet下拉框的change事件，并立即执行
+		$('#zeroImporterSheet').change(function() {
+			sheetSelectChange(opt);
+		});
+		$('#zeroImporterSheet').change();
+
+		// 绑定按钮事件
+		// 上一步
+		$('#backBtn').click(function() {
+			__webpack_require__(4).render(opt);
+		});
+		// 下一步
+		$('#nextBtn').click(function() {
+			__webpack_require__(6).render(opt);
+		});
+		// 取消
+		$('#cancelBtn').click(function() {
+			zeroModal.close(result.tempModalUnique);
+		});
+	};
+
+	/**
+	 * sheet下拉框的change事件
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	function sheetSelectChange(opt) {
+		var sheetIndex = document.getElementById('zeroImporterSheet').value;
+		result.tempCurSheetIndex = sheetIndex;
+
+		$.ajax({
+			url: opt.loadDataUrl,
+			dataType: 'json',
+			type: 'post',
+			data: {
+				tempfilepath: result.tempfilepath,
+				sheetIndex: sheetIndex
+			},
+			success: function(data) {
+				result.tempHeader = []; // 先清空header数据
+				var html = '<table class="zero-grid zero-grid-hover zero-grid-importer">';
+				for (var i = 0; i < data.datas.length; i++) {
+					var d = data.datas[i];
+					if (i === 0) {
+						html += '<thead><tr><th style="width:40px;min-width:40px"></th>';
+						for (var j = 0; j < d.length; j++) {
+							html += '<th>' + d[j] + '</th>';
+
+							// 将头部数据放入缓存中，方便后续环节使用
+							result.tempHeader.push({
+								index: j,
+								name: d[j]
+							});
+						}
+						html += '</tr></thead>';
+					} else {
+						html += '<tbody><tr>';
+						html += '<td style="text-align:center">' + i + '</td>';
+						for (var j = 0; j < d.length; j++) {
+							html += '<td>' + d[j] + '</td>';
+						}
+						html += '</tr></tbody>';
+					}
+				}
+				html += '   </table>';
+				$('#zeroImporterDataContainer').html(html);
+			}
+		});
+	}
+
+	module.exports = preview;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var result = __webpack_require__(2);
+
+	/**
+	 * 字段映射配置页面
+	 * @type {Object}
+	 */
+	var mapping = {};
+
+	/**
+	 * 渲染方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	mapping.render = function(opt) {
+		// 先关闭前面的modal
+		util.closeTempModal();
+
+		// 创建新的modal
+		result.tempModalUnique = zeroModal.show({
+			title: '设定映射转换 (3/5)',
+			content: '<div id="zeroImporterContainer"></div>',
+			width: '720px',
+			height: '500px',
+			max: true,
+			buttons: [{
+				className: 'zeromodal-btn zeromodal-btn-default zeromodal-hide',
+				name: '更新当前方案',
+				attr: 'id="updateDrfaBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '保存新的方案',
+				attr: 'id="saveDrfaBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '上一步',
+				attr: 'id="backBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '下一步',
+				attr: 'id="nextBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '取消',
+				attr: 'id="cancelBtn"'
+			}]
+		});
+
+		/*var html = `
+			<select id="zeroImporterDrfaSelect" class="zero-exporter-select"><option value="__zeroImporter_defaltfa">默认方案</option></select>
+			<a id="removeDrfaBtn" href="javascript:void(0)" class="zero-exporter-a">移除方案</a>
+			<input id="zeroImporterFilterInput" placeholder="输入关键词按“回车”查询" class="zero-exporter-text" maxlength="40" style="width:154px; float:right;">
+			<div id="zeroImporterDataContainer" style="margin-top:4px"></div>
+		`;*/
+		var html = '<select id="zeroImporterDrfaSelect"class="zero-exporter-select"><option value="__zeroImporter_defaltfa">默认方案</option></select><a id="removeDrfaBtn"href="javascript:void(0)"class="zero-exporter-a">移除方案</a><input id="zeroImporterFilterInput"placeholder="输入关键词按“回车”查询"class="zero-exporter-text"maxlength="40"style="width:154px; float:right;"><div id="zeroImporterDataContainer"style="margin-top:4px"></div>';
+
+		$('#zeroImporterContainer').html(html);
+		// 给导入方案下拉框绑定change事件
+		$('#zeroImporterDrfaSelect').change(function() {
+			drfaSelectChange(opt);
+		});
+
+		//
+		// 构建字段映射的表格
+		buildMappingGrid();
+		// 绑定字段映射事件
+		bindFieldsMappingEvent();
+		// 绑定按钮事件
+		bindBtnEvent(opt);
+		// 加载导入方案
+		loadDrfa(opt);
+	};
+
+	/**
+	 * 构建字段映射的表格
+	 * @return {[type]} [description]
+	 */
+	function buildMappingGrid() {
+		// 创建表格
+		result.tempMappingGrid = new zeroGrid({
+			container: '#zeroImporterDataContainer',
+			unique: 'mapping',
+			pagination: true,
+			checkboxProperty: 'name',
+			checkboxPropertyTitle: '选择导入',
+			pageSize: 8,
+			checkboxPropertyFunc: function(col) {
+				// 根据primaryKey和requireFields 来控制复选框是否需要显示，
+				return result.tempPrimaryKeyObj[col.name] === 1 || result.tempRequireFieldsObj[col.name] === 1 ? false : true;
+			},
+			columns: [{
+				display: '目标列名',
+				property: 'display',
+				width: '20%'
+			}, {
+				display: '目标列英文名',
+				property: 'name',
+				width: '18%'
+			}, {
+				display: '类型',
+				property: 'remark1',
+				width: '12%'
+			}, {
+				display: '转换类型',
+				width: '10%',
+				view: function(col) {
+					var html = '<select role-convert-type="' + col.name + '" class="zero-exporter-select" style="width:90%">';
+					html += '		<option value="0">无</option>';
+					html += '       <option value="3">常量</option>';
+					html += '	</select>';
+					return html;
+				}
+			}, {
+				display: '转换值或格式',
+				width: '13%',
+				view: '<input role-convert-value="{{name}}" value="" class="zero-exporter-text" maxlength="20" />'
+			}, {
+				display: '源列',
+				width: '16%',
+				view: function(col) {
+					var html = '<select role-origin-col="' + col.name + '" role-origin-display="' + col.display + '" class="zero-exporter-select" style="width:80%">';
+					html += '       <option value="">无</option>';
+					for (var i = 0; i < result.tempHeader.length; i++) {
+						html += '   <option value="' + result.tempHeader[i].name + '">' + result.tempHeader[i].name + '</option>';
+					}
+					html += '   </select>';
+					html += '	<a title="查找源列" href="javascript:void(0);" role-findyl="' + col.name + '"><i class="icon iconfont" style="float:right;margin-top:2px;"></i></a>';
+					html += '   <div style="display:none" role-data-zdm="' + col.name + '" role-display="' + col.display + '" role-length="' + col.remark2 + '" role-type="' + col.remark3 + '"></div>';
+					return html;
+				}
+			}],
+			frontFilterDataFunc: function(datas) {
+				var keyword = $('#zeroImporterFilterInput').val() || '';
+				if (keyword === '') {
+					return datas;
+				}
+
+				var filterDatas = [];
+				for (var i = 0; i < datas.length; i++) {
+					if (datas[i].name.indexOf(keyword) !== -1 || datas[i].display.indexOf(keyword) !== -1) {
+						filterDatas.push(datas[i]);
+					}
+				}
+				return filterDatas;
+			},
+			paginationChangeAfterListener: autoSelectedGridCheckboxAndInitValue,
+			checkboxCheckFunc: checkboxCheckFunc,
+			loadAfterListener: function() {
+				setTimeout(function() { // 调用主键、必选字段的类型change事件，使得转换值默认为禁用
+					for (var key in result.tempPrimaryKeyObj) {
+						if (result.tempPrimaryKeyObj.hasOwnProperty(key)) {
+							$('[role-convert-type="' + key + '"]').change();
+						}
+					}
+					for (var key in result.tempRequireFieldsObj) {
+						if (result.tempRequireFieldsObj.hasOwnProperty(key)) {
+							$('[role-convert-type="' + key + '"]').change();
+						}
+					}
+					// 自动选择表格中的checkbox并且初始化值
+					autoSelectedGridCheckboxAndInitValue();
+				}, 300);
+			},
+			datas: []
+		});
+
+		result.tempMappingGrid.render();
+
+		$('#zeroImporterFilterInput').keyup(function(e) {
+			if (e.keyCode === 13) {
+				result.tempMappingGrid.load(1);
+			}
+		});
+	}
+
+
+	/**
+	 * 绑定字段映射事件
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	function bindFieldsMappingEvent(opt) {
+
+		// 点击checkbox（选择/取消选择导入的字段）的事件
+		$('#zeroImporterDataContainer').on('click', '[name="box_mapping"]', function() {
+			var jobj = $(this);
+			var zdm = jobj.val();
+
+			// 字段是否选中后，对该字段的类型格式输入框进行控制
+			zdmSfxzAfterFn(zdm, jobj.is(':checked') ? 1 : 0);
+		});
+
+		// 转换类型change事件
+		$('#zeroImporterDataContainer').on('change', '[role-convert-type]', function() {
+			var jobj = $(this);
+			var zdm = jobj.attr('role-convert-type');
+
+			result.tempMappingGridResult[zdm].ZHLX = jobj.val();
+
+			// 字段是否选中后，对该字段的类型格式输入框进行控制
+			var jchkObjs = $('[name="box_mapping"][value="' + zdm + '"]');
+			zdmSfxzAfterFn(zdm, jchkObjs.length > 0 ? (jchkObjs.is(':checked') ? 1 : 0) : 1);
+		});
+
+		// 转换值或格式失去焦点事件
+		$('#zeroImporterDataContainer').on('blur', '[role-convert-value]', function() {
+			var jobj = $(this);
+			var zdm = jobj.attr('role-convert-value');
+
+			result.tempMappingGridResult[zdm].ZHGSHZ = jobj.val();
+		});
+
+		// 源列change事件
+		$('#zeroImporterDataContainer').on('change', '[role-origin-col]', function() {
+			var jobj = $(this);
+			var zdm = jobj.attr('role-origin-col');
+
+			result.tempMappingGridResult[zdm].YLMC = jobj.val();
+		});
+
+		// 查找源列
+		$('#zeroImporterDataContainer').on('click', '[role-findyl]', function() {
+			var jobj = $(this);
+			var zdm = jobj.attr('role-findyl');
+
+			var _unique = zeroModal.show({
+				title: '查找源列',
+				content: '<input id="zeroImporterFindylInput" class="zero-importer_keyword1" placeholder="输入名称，按回车键查询" /><div id="zeroImporterFindylDiv"></div>',
+				width: '300px',
+				height: '350px'
+			});
+
+			var _zeroGrid = new zeroGrid({
+				container: '#zeroImporterFindylDiv',
+				radioboxProperty: 'name',
+				pageSize: 5,
+				columns: [{
+					display: '源列',
+					property: 'name'
+				}],
+				paginationStyle: 'simple',
+				datas: result.tempHeader,
+				frontFilterDataFunc: function(datas) {
+					var keyword = $('#zeroImporterFindylInput').val() || '';
+					if (keyword === '') {
+						return datas;
+					}
+
+					var filterDatas = [];
+					for (var i = 0; i < datas.length; i++) {
+						if (datas[i].name.indexOf(keyword) !== -1 || datas[i].name.indexOf(keyword) !== -1) {
+							filterDatas.push(datas[i]);
+						}
+					}
+					return filterDatas;
+				}
+			});
+			_zeroGrid.render();
+
+			$('#zeroImporterFindylInput').keyup(function(e) {
+				if (e.keyCode === 13) {
+					_zeroGrid.load(1);
+				}
+			});
+
+			$('#zeroImporterFindylDiv').on('click', '[type="radio"]', function() {
+				var val = $(this).val();
+
+				var jcolObj = $('[role-origin-col="' + zdm + '"]');
+				jcolObj.val(val);
+				jcolObj.change();
+				zeroModal.close(_unique);
+			});
+		});
+	}
+
+	/**
+	 * 导入方案下拉框的change事件
+	 * @return {[type]} [description]
+	 */
+	function drfaSelectChange(opt) {
+		var drfaWid = $('#zeroImporterDrfaSelect').val();
+
+		result.tempMappingGrid.setDatas(result.tempData.items);
+		result.tempMappingGrid.load();
+		result.tempCurDrfawid = drfaWid;
+
+		// 初始化 result.tempMappingGridResults 数据，后续页面渲染都根据这个数据来
+		if (drfaWid === '__zeroImporter_defaltfa') {
+			$('#updateDrfaBtn').toggleClass('zeromodal-hide', true); // 隐藏更新当前方案按钮
+
+			// 默认全选
+			for (var i = 0; i < result.tempData.items.length; i++) {
+				var item = result.tempData.items[i];
+				result.tempMappingGridResult[item.name] = {
+					SFXZ: 1 // 是否选中
+				};
+			}
+
+			// 初始化用于存储字段映射表格中的“源列”数据
+			initTempMappingGridResultYlmc();
+
+			// 自动选择表格中的checkbox并且初始化值
+			autoSelectedGridCheckboxAndInitValue();
+
+			// 将没有对应的源列取消选中
+			autoCancelNoYlFieldSfxz();
+		} else {
+			$('#updateDrfaBtn').removeClass('zeromodal-hide'); // 显示更新当前方案按钮
+
+			$('[name="box_mapping"]').each(function() {
+				var jobj = $(this);
+				if (jobj.is(':checked')) {
+					jobj.click();
+				}
+			});
+
+			// 1.根据导入方案WID获取导入的字段配置信息
+			function getDrfazdxxs() {
+				var deferred = $.Deferred();
+				if (result.tempDrfazdxx[drfaWid]) {
+					deferred.resolve(result.tempDrfazdxx[drfaWid]);
+				} else {
+					$.ajax({
+						url: opt.getDrfazdxxsUrl,
+						data: {
+							drfawid: drfaWid
+						},
+						dataType: 'json',
+						type: 'post',
+						success: function(data) {
+							result.tempDrfazdxx[drfaWid] = data.drfazdxxs;
+							deferred.resolve(data.drfazdxxs);
+						}
+					});
+				}
+				return deferred;
+			}
+
+			// 2.将获取的字段配置信息渲染到页面中
+			function renderDrfazdxx(drfazdxxs) {
+				for (var i = 0; i < result.tempData.items.length; i++) {
+					var item = result.tempData.items[i];
+
+					var curdrfazdxx = undefined;
+					for (var j = 0; j < drfazdxxs.length; j++) {
+						if (item.name === drfazdxxs[j].ZDM) {
+							curdrfazdxx = drfazdxxs[j];
+							break;
+						}
+					}
+
+					if (curdrfazdxx !== undefined) {
+						result.tempMappingGridResult[item.name] = {
+							SFXZ: curdrfazdxx.SFXZ, // 是否选中
+							ZHLX: util.strOf(curdrfazdxx.ZHLX), // 转换类型
+							ZHGSHZ: util.strOf(curdrfazdxx.ZHGSHZ), // 转换格式或值
+							YLMC: util.strOf(curdrfazdxx.YLMC) // 源列名称
+						};
+					} else {
+						if (result.tempPrimaryKeyObj[item.name] === 1 || result.tempRequireFieldsObj[item.name] === 1) {
+							result.tempMappingGridResult[item.name] = {
+								SFXZ: 1 // 是否选中
+							};
+						} else {
+							result.tempMappingGridResult[item.name] = {
+								SFXZ: 0 // 是否选中
+							};
+						}
+					}
+				}
+
+				// 初始化用于存储字段映射表格中的“源列”数据
+				initTempMappingGridResultYlmc();
+
+				// 自动选择表格中的checkbox并且初始化值
+				autoSelectedGridCheckboxAndInitValue();
+			}
+
+			// 执行func
+			getDrfazdxxs().then(renderDrfazdxx);
+		}
+	}
+
+	/**
+	 * 根据 result.tempMappingGridResult 数据自动选择表格中的checkbox，并且初始化值
+	 * @return {[type]} [description]
+	 */
+	function autoSelectedGridCheckboxAndInitValue() {
+		$('[name="box_mapping"]').each(function() {
+			var jobj = $(this);
+			var zdm = jobj.val();
+			var res = result.tempMappingGridResult[zdm];
+
+			// 选中
+			if (res.SFXZ === 1 && !jobj.is(':checked')) {
+				jobj.click();
+			}
+			if (res.SFXZ === 0 && jobj.is(':checked')) {
+				jobj.click();
+			}
+
+			// 初始化值
+			if (!util.isBlank(res.ZHLX)) {
+				$('[role-convert-type="' + zdm + '"]').val(res.ZHLX);
+			}
+			if (!util.isBlank(res.ZHGSHZ)) {
+				$('[role-convert-value="' + zdm + '"]').val(res.ZHGSHZ);
+			}
+
+			// 字段是否选中后，对该字段的类型格式输入框进行控制
+			zdmSfxzAfterFn(zdm, res.SFXZ);
+		});
+
+		// 根据存储的结果设置源列
+		$('[role-origin-col]').each(function() {
+			var jobj = $(this);
+			var zdm = jobj.attr('role-origin-col');
+			var res = result.tempMappingGridResult[zdm];
+
+			if (!util.isBlank(res.YLMC)) {
+				$('[role-origin-col="' + zdm + '"]').val(res.YLMC);
+			}
+		});
+	}
+
+	/**
+	 * 自动取消没有源列的字段是否选中状态
+	 * @return {[type]} [description]
+	 */
+	function autoCancelNoYlFieldSfxz() {
+		for (var key in result.tempMappingGridResult) {
+			if (result.tempMappingGridResult.hasOwnProperty(key)) {
+				if (util.isBlank(result.tempMappingGridResult[key].YLMC)) {
+					result.tempMappingGridResult[key].SFXZ = 0;
+					$('[name="box_mapping"][value="' + key + '"]').click();
+				}
+			}
+		}
+	}
+
+	/**
+	 * 初始化用于存储字段映射表格中的“源列”数据
+	 * @return {[type]} [description]
+	 */
+	function initTempMappingGridResultYlmc() {
+		for (var key in result.tempMappingGridResult) {
+			if (result.tempMappingGridResult.hasOwnProperty(key)) {
+				// 如果源列名称不为空，检查是否有对应的源列存在
+				if (!util.isBlank(result.tempMappingGridResult[key].YLMC)) {
+					var _exists = false;
+					for (var i = 0; i < result.tempHeader.length; i++) {
+						if (result.tempHeader[i].name === result.tempMappingGridResult[key].YLMC) {
+							_exists = true;
+						}
+					}
+					if (!_exists) {
+						result.tempMappingGridResult[key].YLMC = "";
+					}
+				}
+
+				// 如果源列名称为空，则系统自动先匹配
+				if (util.isBlank(result.tempMappingGridResult[key].YLMC)) {
+
+					var item = findImportFieldItem(key);
+					for (var i = 0; i < result.tempHeader.length; i++) {
+						if (result.tempHeader[i].name.toUpperCase() === item.display || result.tempHeader[i].name.toUpperCase() === item.name) {
+							result.tempMappingGridResult[key].YLMC = result.tempHeader[i].name;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 全选或取消全选执行的事件
+	 * @return {[type]} [description]
+	 */
+	function checkboxCheckFunc(checked) {
+		if (checked) {
+			for (var key in result.tempMappingGridResult) {
+				if (result.tempMappingGridResult.hasOwnProperty(key)) {
+					result.tempMappingGridResult[key].SFXZ = 1;
+				}
+			}
+		} else {
+			for (var key in result.tempMappingGridResult) {
+				if (result.tempMappingGridResult.hasOwnProperty(key) && result.tempPrimaryKeyObj[key] !== 1 && result.tempRequireFieldsObj[key] !== 1) {
+					result.tempMappingGridResult[key].SFXZ = 0;
+				}
+			}
+		}
+		autoSelectedGridCheckboxAndInitValue();
+	}
+
+	/**
+	 * 加载导入方案相关信息
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	function loadDrfa(opt, drfaWid) {
+		$.ajax({
+			url: (window.ZERO_DEBUG_MODE ? opt.getImportInfoUrl.debug : opt.getImportInfoUrl.normal),
+			dataType: 'json',
+			type: (window.ZERO_DEBUG_MODE ? 'get' : 'post'),
+			data: util.buildAjaxParams(opt, result.type),
+			success: function(data) {
+				result.tempData = data; // 导入方案集合，导入配置等
+				for (var i = 0; i < data.drfas.length; i++) {
+					$('#zeroImporterDrfaSelect').append('<option title="' + data.drfas[i].MC + '" value="' + data.drfas[i].WID + '" ' + (drfaWid !== undefined && drfaWid === data.drfas[i].WID ? 'selected=selected' : '') + '>' + data.drfas[i].MC + '</option>');
+				}
+
+				// 将导入字段中，为主键或必选的字段单独放到对应的对象中
+				result.tempPrimaryKeyObj = {};
+				result.tempRequireFieldsObj = {};
+				if (result.tempData.importConfig.primaryKey !== undefined) {
+					var primaryKey = result.tempData.importConfig.primaryKey.split(',');
+					for (var i = 0; i < primaryKey.length; i++) {
+						result.tempPrimaryKeyObj[primaryKey[i]] = 1;
+					}
+				}
+				if (result.tempData.importConfig.requireFileds !== undefined) {
+					var requireFileds = result.tempData.importConfig.requireFileds.split(',');
+					for (var i = 0; i < requireFileds.length; i++) {
+						result.tempRequireFieldsObj[requireFileds[i]] = 1;
+					}
+				}
+
+				// 重置
+				result.tempMappingGridResult = {};
+
+				// 加载完导入方案后，调用导入切换的事件
+				drfaSelectChange(opt);
+			}
+		});
+	}
+
+	/**
+	 * 绑定按钮事件
+	 * @return {[type]} [description]
+	 */
+	function bindBtnEvent(opt) {
+		// 移除方案
+		$('#removeDrfaBtn').click(function() {
+			if ($('#zeroImporterDrfaSelect').val() === '__zeroImporter_defaltfa') {
+				util.alert('默认方案不能删除！');
+				return;
+			}
+
+			util.confirm('确认删除当前的方案？', function() {
+				$.ajax({
+					url: opt.removeDrfaUrl,
+					dataType: "json",
+					type: 'post',
+					data: util.buildAjaxParams(opt, result.type, {
+						wid: $('#zeroImporterDrfaSelect').val()
+					}),
+					success: function(data) {
+						if (data.success === 1) {
+							mapping.render(opt);
+							util.success('删除成功！');
+						} else {
+							util.alert('不能删除其他人创建的方案', '删除失败！');
+						}
+					}
+				});
+			});
+		});
+
+		// 更新方案
+		$('#updateDrfaBtn').click(function() {
+			var drfaWid = $('#zeroImporterDrfaSelect').val();
+			if (drfaWid === '__zeroImporter_defaltfa' || drfaWid === '') {
+				return;
+			}
+
+			util.confirm('确定更新当前的方案吗？', function() {
+				var _key = zeroModal.loading();
+
+				$.ajax({
+					url: (window.ZERO_DEBUG_MODE ? opt.updateDrfaUrl.debug : opt.updateDrfaUrl.normal),
+					dataType: "json",
+					type: (window.ZERO_DEBUG_MODE ? "get" : "post"),
+					data: {
+						wid: drfaWid,
+						drfazdxx: JSON.stringify(result.convertTempMappingGridResult())
+					},
+					success: function(data) {
+						zeroModal.close(_key);
+
+						if (data.msg !== '') {
+							util.alert(data.msg, '保存失败！');
+						} else {
+							mapping.render(opt, drfaWid);
+							util.success('保存成功！');
+
+							// 删除当前缓存下来的导入方案字段信息
+							delete result.tempDrfazdxx[drfaWid];
+						}
+					}
+				});
+			});
+		});
+
+		// 保存方案
+		$('#saveDrfaBtn').click(function() {
+			var _content = '<input id="newFamc" maxlength="40" class="zero-exporter-text" placeholder="新的方案名称" />';
+			if (opt.dataRoleId === 'xx') { // 只有学校的角色的人才能创建公共的方案
+				_content += '<span class="check_box" style="margin-top:8px"><input class="box_hidden" checked type="checkbox" id="chk_sfgk" value="1"><label for="chk_sfgk"></label><span>公用方案</span></span>';
+			} else {
+				_content += '<input class="box_hidden" style="display:none;" type="checkbox" id="chk_sfgk" value="1">';
+			}
+
+			var key = zeroModal.show({
+				title: '请输入方案名称',
+				content: _content,
+				width: '260px',
+				height: '190px',
+				ok: true,
+				cancel: true,
+				okFn: function() {
+					if ($.trim($('#newFamc').val()) === '') {
+						$('#newFamc').focus();
+						return false;
+					}
+
+					var _key = zeroModal.loading();
+					$.ajax({
+						url: (window.ZERO_DEBUG_MODE ? opt.saveDrfaUrl.debug : opt.saveDrfaUrl.normal),
+						dataType: "json",
+						type: (window.ZERO_DEBUG_MODE ? "get" : "post"),
+						data: {
+							mc: $.trim($('#newFamc').val()),
+							sfgk: (document.getElementById('chk_sfgk').checked ? 1 : 0),
+							impId: opt.impId,
+							app: opt.app,
+							lx: opt.lx,
+							type: result.type,
+							drfazdxx: JSON.stringify(result.convertTempMappingGridResult())
+						},
+						success: function(data) {
+							zeroModal.close(_key);
+							if (data.wid !== '') {
+								mapping.render(opt, data.wid);
+								util.success('保存成功！');
+							} else {
+								util.alert('保存失败！');
+							}
+						}
+					});
+				}
+			});
+		});
+
+		// 取消
+		$('#cancelBtn').click(function() {
+			zeroModal.close(result.tempModalUnique);
+		});
+		// 上一步
+		$('#backBtn').click(function() {
+			__webpack_require__(5).render(opt);
+		});
+		// 下一步
+		$('#nextBtn').click(function() {
+			result.tempImportFields = [];
+
+			var res = result.convertTempMappingGridResult();
+			var colYlmcObj = {}; // 记录源列值，用于后续检查是否重复
+			for (var i = 0; i < res.length; i++) {
+				if (res[i].sfxz === 1) {
+					var item = findImportFieldItem(res[i].zdm);
+					if (res[i].zhlx != '3' && util.isBlank(res[i].ylmc)) {
+						util.alert('请先选择字段“' + item.display + ' (' + res[i].zdm + ')”的源列！', '无法进入下一步');
+						return;
+					}
+
+					result.tempImportFields.push({
+						convertType: util.isBlank(res[i].zhlx) ? '0' : util.strOf(res[i].zhlx),
+						convertValue: util.strOf(res[i].zhgshz),
+						field: res[i].zdm,
+						fieldName: item.display,
+						originCol: res[i].ylmc,
+						type: item.remark3,
+						length: 200
+					});
+
+					if (!util.isBlank(res[i].ylmc)) {
+						// 检查源列选择是否重复
+						if (colYlmcObj[res[i].ylmc]) {
+							util.alert('字段“' + colYlmcObj[res[i].ylmc] + '”的源列与字段“' + item.display + '”的源列重复', '无法进入下一步');
+							return;
+						} else {
+							colYlmcObj[res[i].ylmc] = item.display;
+						}
+					}
+				}
+			}
+
+			if (result.tempImportFields.length === 0) {
+				util.alert('请先选择需要导入的字段！', '无法进入下一步');
+				return;
+			}
+			if (opt.maxSelectFiledsCount !== 0) {
+				if (opt.maxSelectFiledsCount < result.tempImportFields.length) {
+					util.alert('最多只能选择' + opt.maxSelectFiledsCount + '个字段', '无法进入下一步');
+					return;
+				}
+			}
+
+			console.log(result.tempImportFields);
+			__webpack_require__(7).render(opt);
+		});
+	}
+
+	/**
+	 * 字段是否选中后，对该字段的类型格式输入框进行控制
+	 * @param  {[type]} zdm  [description]
+	 * @param  {[type]} sfxz [description]
+	 * @return {[type]}      [description]
+	 */
+	function zdmSfxzAfterFn(zdm, sfxz) {
+		// 是否选中
+		if (sfxz === 1) {
+			result.tempMappingGridResult[zdm].SFXZ = 1;
+
+			var jzhlxObj = $('[role-convert-type="' + zdm + '"]');
+			$('[role-convert-type="' + zdm + '"]').removeAttr('disabled').removeClass('readonly');
+
+			if (jzhlxObj.val() === '3') { // 常量
+				$('[role-convert-value="' + zdm + '"]').removeAttr('readonly').removeClass('readonly');
+			} else {
+				$('[role-convert-value="' + zdm + '"]').attr('readonly', 'true').addClass('readonly').val("");
+			}
+
+		} else {
+			result.tempMappingGridResult[zdm].SFXZ = 0;
+
+			$('[role-convert-value="' + zdm + '"]').attr('readonly', 'true').addClass('readonly').val("");
+			$('[role-convert-type="' + zdm + '"]').attr('disabled', 'true').addClass('readonly').val("0");
+		}
+	}
+
+	/**
+	 * 根据字段码获取对应的导入字段信息
+	 * @param  {[type]} zdm [description]
+	 * @return {[type]}     [description]
+	 */
+	function findImportFieldItem(zdm) {
+		for (var i = 0; i < result.tempData.items.length; i++) {
+			if (result.tempData.items[i].name === zdm) {
+				return result.tempData.items[i];
+			}
+		}
+	}
+
+	module.exports = mapping;
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var result = __webpack_require__(2);
+
+	/**
+	 * 选择处理机制页面
+	 * @type {Object}
+	 */
+	var handle = {};
+
+	/**
+	 * 渲染方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	handle.render = function(opt) {
+		// 先关闭前面的modal
+		util.closeTempModal();
+
+		/**var html = `
+			<div>
+				<fieldset style="padding:12px;border:1px dashed #ddd;border-radius:8px;">
+					<legend>已存在的记录</legend>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_exists_0" name="rdo_exists" value="0"><label for="rdo_exists_0"></label><span>忽略（不做任何处理</span>）</label>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_exists_1" name="rdo_exists" value="1"><label for="rdo_exists_1"></label><span>更新（只更新导入的列）</span></label>
+				</fieldset>
+				<fieldset style="padding:12px;border:1px dashed #ddd;margin-top:16px;border-radius:8px;">
+					<legend>不存在的记录</legend>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_notexists_0" name="rdo_notexists" value="0"><label for="rdo_notexists_0"></label><span>忽略（不做任何处理）</span></label>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_notexists_1" name="rdo_notexists" value="1"><label for="rdo_notexists_1"></label><span>新增</span></label>
+				</fieldset>
+				<fieldset style="padding:12px;border:1px dashed #ddd;margin-top:16px;border-radius:8px;">
+					<legend>错误处理</legend>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_error_0" name="rdo_error" value="0"><label for="rdo_error_0"></label><span>全部撤销</span></label>
+					<label class="radio_box zero-importer-radio-box"><input class="box_hidden" type="radio" id="rdo_error_1" name="rdo_error" value="1"><label for="rdo_error_1"></label><span>忽略错误，继续执行</span></label>
+				</fieldset>
+			</div>
+		`;*/
+		var html = '<div><fieldset style="padding:12px;border:1px dashed #ddd;border-radius:8px;"><legend>已存在的记录</legend><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_exists_0"name="rdo_exists"value="0"><label for="rdo_exists_0"></label><span>忽略（不做任何处理</span>）</label><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_exists_1"name="rdo_exists"value="1"><label for="rdo_exists_1"></label><span>更新（只更新导入的列）</span></label></fieldset><fieldset style="padding:12px;border:1px dashed #ddd;margin-top:16px;border-radius:8px;"><legend>不存在的记录</legend><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_notexists_0"name="rdo_notexists"value="0"><label for="rdo_notexists_0"></label><span>忽略（不做任何处理）</span></label><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_notexists_1"name="rdo_notexists"value="1"><label for="rdo_notexists_1"></label><span>新增</span></label></fieldset><fieldset style="padding:12px;border:1px dashed #ddd;margin-top:16px;border-radius:8px;"><legend>错误处理</legend><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_error_0"name="rdo_error"value="0"><label for="rdo_error_0"></label><span>全部撤销</span></label><label class="radio_box zero-importer-radio-box"><input class="box_hidden"type="radio"id="rdo_error_1"name="rdo_error"value="1"><label for="rdo_error_1"></label><span>忽略错误，继续执行</span></label></fieldset></div>';
+
+		// 创建新的modal
+		result.tempModalUnique = zeroModal.show({
+			title: '选择处理机制 (4/5)',
+			content: html,
+			width: '720px',
+			height: '500px',
+			buttons: [{
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '上一步',
+				attr: 'id="backBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '下一步',
+				attr: 'id="nextBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '取消',
+				attr: 'id="cancelBtn"'
+			}]
+		});
+
+		// 初始化及选择处理机制页面定义的事件
+		initAndBindHandlePageEvent(opt);
+	};
+
+	/**
+	 * 初始化及选择处理机制页面定义的事件
+	 * @param  {[type]} opt  [description]
+	 * @return {[type]}      [description]
+	 */
+	function initAndBindHandlePageEvent(opt) {
+		// 初始化单选框的值
+		document.getElementById('rdo_exists_' + result.tempData.importConfig.existsHandleType).checked = true;
+		document.getElementById('rdo_notexists_' + result.tempData.importConfig.notexistsHandleType).checked = true;
+		document.getElementById('rdo_error_' + result.tempData.importConfig.errorHandleType).checked = true;
+		// 设置单选框是否可选
+		if (result.tempData.importConfig.canChoiceExistsHandleType === '0') {
+			$('input:radio[name="rdo_exists"]').each(function() {
+				if (!$(this).is(':checked')) {
+					$(this).parent().hide();
+				}
+			});
+		}
+		if (result.tempData.importConfig.canChoiceNotexistsHandleType === '0') {
+			$('input:radio[name="rdo_notexists"]').each(function() {
+				if (!$(this).is(':checked')) {
+					$(this).parent().hide();
+				}
+			});
+		}
+		if (result.tempData.importConfig.canChoiceErrorHandleType === '0') {
+			$('input:radio[name="rdo_error"]').each(function() {
+				if (!$(this).is(':checked')) {
+					$(this).parent().hide();
+				}
+			});
+		}
+
+		// 上一步
+		$('#backBtn').click(function() {
+			__webpack_require__(6).render(opt, result.tempCurDrfawid);
+		});
+
+		// 下一步
+		$('#nextBtn').click(function() {
+			result.tempHandle.existsHandleType = $('input:radio[name="rdo_exists"]:checked').val();
+			result.tempHandle.notexistsHandleType = $('input:radio[name="rdo_notexists"]:checked').val();
+			result.tempHandle.errorHandleType = $('input:radio[name="rdo_error"]:checked').val();
+
+			result.rzWid = util.getUuid();
+			// 开始提交到后台
+			$.ajax({
+				url: (window.ZERO_DEBUG_MODE ? opt.importTempTableAndValidateUrl.debug : opt.importTempTableAndValidateUrl.normal),
+				dataType: 'json',
+				type: 'post',
+				data: {
+					importFields: JSON.stringify(result.tempImportFields),
+					app: opt.app,
+					impId: opt.impId,
+					tempfilepath: result.tempfilepath,
+					sheetIndex: result.tempCurSheetIndex,
+					rzWid: result.rzWid,
+					otherParam: (opt.otherParam || '')
+				},
+				success: function(data) {
+					/*tempResult = data.result;
+					tempTableName = data.tmpImpTableName;
+					_renderValidateResultPage(opt, type, data.result);
+					zeroModal.close(tempLoadingUnique);*/
+				}
+			});
+
+			// 打开进度条
+			var _getProgressUrl = (window.ZERO_DEBUG_MODE ? opt.getProgressUrl.debug : opt.getProgressUrl.normal);
+			var _clearProgressUrl = (window.ZERO_DEBUG_MODE ? opt.clearProgressUrl.debug : opt.clearProgressUrl.normal);
+			_getProgressUrl += (_getProgressUrl.indexOf('?') !== -1 ? '&' : '?') + 'key=' + result.rzWid;
+			_clearProgressUrl += (_clearProgressUrl.indexOf('?') !== -1 ? '&' : '?') + 'key=' + result.rzWid;
+
+			result.tempLoadingUnique = zeroModal.progress(4, {
+				getProgressUrl: _getProgressUrl,
+				clearProgressUrl: _clearProgressUrl
+			}, 3000, function(progress) {
+				if (progress === 'error') {
+					util.alert('导入出现异常，请联系管理员！');
+				}
+				if (progress === 'finish') {
+					$.ajax({
+						url: (window.ZERO_DEBUG_MODE ? opt.loadImportResultUrl.debug : opt.loadImportResultUrl.normal),
+						dataType: 'json',
+						type: 'post',
+						data: {
+							rzWid: result.rzWid
+						},
+						success: function(data) {
+							result.tempResult = data.result;
+							result.tempTableName = data.tmpImpTableName;
+
+							__webpack_require__(8).render(opt, data.result);
+							zeroModal.close(result.tempLoadingUnique);
+						}
+					});
+				}
+			});
+		});
+		$('#cancelBtn').click(function() {
+			zeroModal.close(result.tempModalUnique);
+		});
+	}
+
+	module.exports = handle;
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var util = __webpack_require__(1);
+	var result = __webpack_require__(2);
+
+	/**
+	 * 校验结果查看页面
+	 * @type {Object}
+	 */
+	var final = {};
+
+
+	/**
+	 * 渲染方法
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	final.render = function(opt, validateData) {
+		// 先关闭前面的modal
+		util.closeTempModal();
+
+		// 导入时，页面是否显示校验结果内容（1是，0否）
+		if (result.importConfig.viewValidateResultContent === '0') {
+			var html = '<div>';
+			if (validateData.ERRORCOUNT > 0) {
+				html += '   <div style="line-height:40px;">当前校验未通过的数据有<span class="zero-importer-msg-span" style="color:red">{{ERRORCOUNT}}</span>条。&nbsp;&nbsp;<a id="downloadErrorData" role-url="' + opt.downloadErrorDataUrl + '" class="zero-importer-a zero-importer-msg-tip" href="javascript:void(0);">下载校验不通过数据</a></div>';
+				html += '   <iframe id="impDownloadIframe" style="display:none"></iframe>';
+			} else {
+				html += '	<div class="bh-color-grey-3" style="margin-bottom:12px;">当前模块暂没有提供导入的校验结果信息。</div>';
+				html += '	<div>您可以直接点击右下方“<b style="font-size:16px;">执行导入</b>”按钮，将数据导入到系统中！</div>';
+			}
+			html += '	</div>';
+
+		} else {
+			// 计算预计导入成功的数量
+			validateData.planEditCount = 0;
+			if (result.tempHandle.existsHandleType !== '0') { // 如果存在的数据不为忽略
+				validateData.planEditCount += validateData.ISEDIT;
+			}
+			if (result.tempHandle.notexistsHandleType !== '0') { // 如果不存在的数据不为忽略
+				validateData.planEditCount += validateData.ISADD;
+			}
+			if (result.tempHandle.errorHandleType === '0') { // 如果存在错误的机制为全部撤销
+				if (validateData.ERRORCOUNT > 0) {
+					validateData.planEditCount = 0;
+				}
+			} else {
+				if (validateData.planEditCount > 0) {
+					validateData.planEditCount = validateData.planEditCount - validateData.ERRORCOUNT;
+				}
+			}
+			if (validateData.planEditCount < 0) {
+				validateData.planEditCount = 0;
+			}
+
+			var html = '<div>';
+			html += '       <div style="line-height:40px;">本次导入的数据共有<span class="zero-importer-msg-span">{{TOTAL}}</span>条，其中新增的数据有<span class="zero-importer-msg-span">{{ISADD}}</span>条，修改的数据有<span class="zero-importer-msg-span">{{ISEDIT}}</span>条。';
+			if (validateData.ERRORCOUNT > 0) {
+				html += '   <div style="line-height:40px;">校验未通过的数据有<span class="zero-importer-msg-span" style="color:red">{{ERRORCOUNT}}</span>条。&nbsp;&nbsp;<a id="downloadErrorData" role-url="' + opt.downloadErrorDataUrl + '" class="zero-importer-a zero-importer-msg-tip" href="javascript:void(0);">下载校验不通过数据</a></div>';
+			}
+			html += '       <div style="line-height:40px;">根据选择的处理机制，预计将会更新<span class="zero-importer-msg-span" style="color:#02A8F3;font-size:16px">' + validateData.planEditCount + '</span>条数据。</div>';
+			html += '       <iframe id="impDownloadIframe" style="display:none"></iframe>';
+			html += '   </div>';
+		}
+
+
+		// 创建新的modal
+		result.tempModalUnique = zeroModal.show({
+			title: '校验结果显示 (5/5)',
+			content: Mustache.render(html, validateData),
+			width: '720px',
+			height: '500px',
+			buttons: [{
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '执行导入',
+				attr: 'id="nextBtn"'
+			}, {
+				className: 'zeromodal-btn zeromodal-btn-default',
+				name: '取消',
+				attr: 'id="cancelBtn"'
+			}]
+		});
+
+		// 绑定事件
+		bindEvent(opt);
+	};
+
+	/**
+	 * 绑定事件
+	 * @param  {[type]} opt [description]
+	 * @return {[type]}     [description]
+	 */
+	function bindEvent(opt) {
+		// 执行导入
+		$('#nextBtn').click(function() {
+			result.tempLoadingUnique = zeroModal.loading(4);
+			result.tempHandle.importFields = JSON.stringify(result.tempImportFields);
+			result.tempHandle.tempfilepath = result.tempfilepath;
+			result.tempHandle.tempTableName = result.tempTableName;
+			result.tempHandle.otherParam = opt.otherParam;
+			result.tempHandle.rzWid = result.rzWid;
+
+			$.ajax({
+				url: opt.doImportUrl,
+				dataType: 'json',
+				type: 'post',
+				data: result.tempHandle,
+				success: function(data) {
+					zeroModal.closeAll();
+
+					if (data.code === 0) {
+						BH_UTILS.bhDialogDanger({
+							title: '导入出错！',
+							content: data.msg || '执行导入出错，请联系管理员！',
+							callback: function() {}
+						});
+						return;
+					}
+
+					BH_UTILS.bhDialogSuccess({
+						title: '导入完成！',
+						content: '本次导入共更新了' + data.success + '条记录',
+						callback: function() {
+							if (typeof opt.okFn === 'function') {
+								var param = {
+									tempHeader: result.tempHeader,
+									tempSheets: result.tempSheets,
+									tempData: result.tempData,
+									tempImportFields: result.tempImportFields,
+									tempHandle: result.tempHandle,
+									tempResult: result.tempResult,
+									rzWid: result.rzWid
+								};
+								return opt.okFn(param, data);
+							}
+						}
+					});
+				}
+			});
+		});
+
+		// 取消
+		$('#cancelBtn').click(function() {
+			zeroModal.close(result.tempModalUnique);
+		});
+
+		// 下载错误数据
+		$('#downloadErrorData').click(function() {
+			var url = $(this).attr('role-url');
+			url += (url.indexOf('?') !== -1 ? '&' : '?') + 'tempTableName=' + result.tempTableName;
+			$('#impDownloadIframe').attr('src', url);
+		});
+	}
+
+	module.exports = final;
+
+/***/ }
+/******/ ]);

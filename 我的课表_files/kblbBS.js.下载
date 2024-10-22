@@ -1,0 +1,24 @@
+define(function(require) {
+	var utils = require('utils');
+	var bs = {
+		api: {
+			//查询进度
+			cxzxjd: 'modules/xskcb/EMAP_SAPP_PROGRESS_QUERY.do'
+        },
+        queryZxjd: function(key) {
+            return utils.fetch({
+                url: WIS_EMAP_SERV.getAbsPath(bs.api.cxzxjd),
+                data: {
+                    KEY: key
+                },
+
+                /***parser用于对接口返回的数据做进一步处理***/
+                parser: function(res) {
+
+                }
+            });
+        }
+  };
+
+  return bs;
+});

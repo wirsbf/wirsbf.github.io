@@ -1,0 +1,31 @@
+define(function(require) {
+
+  var kbck = require('../../public/commonpage/kbck/kbck');
+  var viewConfig = {
+    initialize: function() {
+    	this.pushSubView([kbck]);
+    	var dqxnxq=BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/jshkcb/dqxnxq.do"), {});
+    	kbck.$rootElement=this.$rootElement;
+    	var param={};
+		param.zc=1;
+		param.xnxqdm = dqxnxq.datas.dqxnxq.rows[0].DM;
+		param.xnxqmc = dqxnxq.datas.dqxnxq.rows[0].MC;
+		param.url = "/modules/xskcb/xsllsykb.do";
+		param.tkurl="/modules/xskcb/xsdkkc.do";
+		param.wpkurl="/modules/xskcb/cxxsllsywpk.do";
+		param.tk_ation="xsdkkc";
+		param.wpk_action="cxxsllsywpk";
+		param.flag=true;
+		param.action="xsllsykb";
+		param.isStudent = true;
+		param.pageModel="/modules/xskcb.do";
+		var data = BH_UTILS.doSyncAjax(WIS_EMAP_SERV.getAbsPath("/modules/xskcb/cxxsjbxx.do"), {"XH":userId});
+		var row = data.datas.cxxsjbxx.rows[0];
+		param.info = row.YXDM_DISPLAY + "  " + row.XM;
+		kbck.initialize(param);
+    } 
+  
+  };
+
+  return viewConfig;
+});

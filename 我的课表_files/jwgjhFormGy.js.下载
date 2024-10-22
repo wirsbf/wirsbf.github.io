@@ -1,0 +1,233 @@
+$(function() {
+	window.publicFormIntervene = {
+			getGjhData: function() {
+				var self = this;
+				var param = {
+						SFSY: '1',
+						APP: window.WIS_CONFIG.APPID
+				};
+				$.ajax({
+					url: window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/gjhwhController/queryAppGjhMapping.do",
+					data: param,
+					type: 'post',
+					success: function(resp) {
+						if (resp && !resp.code) {
+							if('[]'!=resp){
+								var gjhDataList = JSON.parse(resp);
+								self.bindDomEvent(gjhDataList);
+							}
+						}
+					}
+				});
+			},
+
+			bindDomEvent: function(gjhDataList) {
+				var self = this;
+				self.initFlag = false;
+				var callBack = function() {
+					self.initFlag = false;
+					setTimeout(function() {
+						if (!self.initFlag) {
+							self.initGjh(gjhDataList);
+							self.initFlag = true;
+						}
+					}, 2500);
+				};
+				document.body.removeEventListener('DOMNodeInserted', callBack);
+				document.body.addEventListener('DOMNodeInserted', callBack);
+			},
+
+			getUUID : function() {
+				return 'xxxxxxxxxxxx2xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+					var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+					return v.toString(16);
+				});
+			},
+
+			bindGjhClickEvent: function($dom,params,isTable) {
+				var self = this;
+				var utils = require('utils');
+				var $clickDom = isTable?$dom.siblings('.gjhClick'):$dom.find('.gjhClick');
+				$clickDom.off('click').on('click', function(event) {
+					var zdName = $(event.currentTarget).attr('data-zdName');
+					var ywzd = $(event.currentTarget).attr('data-ywzd');//英文字段
+					var mszd = $(event.currentTarget).attr('data-mszd');//描述字段
+					var yysx = '';
+					var tableName = $(event.currentTarget).attr('data-tableName');
+					var formValue = $dom.emapForm("getValue");
+					var wid = formValue.WID;
+					if ('' == wid ||undefined==wid){
+						wid =  self.getUUID();
+					}
+					$dom.emapForm("setValue", {WID:wid});
+					//组装模型
+					var tagModel = [];
+					var dataModel = $dom.emapForm("getModel");
+					var zdsx = {};
+					dataModel.map(function(obj){
+						if(obj.name == zdName){
+							zdsx = obj;
+							return;
+						}
+					});
+					var title = zdsx.caption;
+					delete zdsx.groupName;
+					delete zdsx['form.required'];
+					var tagWindow = utils.window({
+						title: title + '国际化',
+						content: '<div id="gjhwh-form"></div>',
+						height: '500px',
+						width: '450px',
+						buttons: [{
+							text: '清除',
+							className: 'bh-btn-primary',
+							callback: function() {
+								$('#gjhwh-form').emapForm("clear");
+								return false;
+							}
+						},{
+							text: '保存',
+							className: 'bh-btn-primary',
+							callback: function() {
+								var data = $('#gjhwh-form').emapForm("getValue");
+								var params = [];
+								//将描述字段的相关属性也记录下来
+								var xgms = '';//记录相关描述
+								if(mszd){
+									var strs = mszd.split(",");
+									for(var i=0;i<strs.length;i++){
+										if(formValue[strs[i]]){
+											xgms += strs[i] + '=' + formValue[strs[i]] + ',';
+										}
+									}
+								}
+								xgms = (xgms.slice(xgms.length - 1) == ',') ? xgms.slice(0,-1) : xgms;
+								for(var sx in data){
+									var tagValue = data[sx];
+									if(tagValue){
+										var obj = {
+												TABLENAME:tableName,
+												ZD:zdName,
+												YY:sx,
+												YWWID:wid,
+												ZDGJH:tagValue
+										};
+										if(xgms){
+											obj.JLMS = xgms;
+										}
+										params.push(obj);
+									}
+								}
+								if(0 == params.length){
+									$.bhTip({content: '未填写任何国际化信息！', state:'warning'});
+									return false;
+								}
+								BH_UTILS.doAjax(window.WIS_CONFIG.ROOT_PATH + "/sys/jwpubapp/gjhwhController/save.do", {
+									'requestParamStr':JSON.stringify(params)
+								}).done(function(resp) {
+									if('0' == resp.code&&'0' == resp.data.code){
+										$.bhTip({ content: '保存成功',state: 'success'});
+										tagWindow.jqxWindow('close');
+										//如果有维护英文字段  则直接回写
+										if(yysx&&data[yysx]&&ywzd){
+											var tagParams = {};
+											tagParams[ywzd] = data[yysx];
+											$dom.emapForm("setValue",tagParams);
+										}
+									}else{
+										$.bhTip({content: '保存字段国际化数据失败！', state:'warning'});
+										return false;
+									}
+								});
+								return false;
+							}
+						}, {
+							text: '取消',
+							className: 'bh-btn-default',
+							callback: function() {}
+						}]
+					});
+
+					BH_UTILS.doAjax(window.WIS_CONFIG.ROOT_PATH + '/sys/jwpubapp/modules/gjh/cxgjhqdyy.do', {
+						TABLENAME:tableName,
+						ZD:zdName,
+						YWWID:wid
+					}).done(function(resp) {
+						if (resp.code == '0' && resp.datas.cxgjhqdyy) {
+							if(resp.datas.cxgjhqdyy.rows.length > 0){
+								var setValue = {};
+								resp.datas.cxgjhqdyy.rows.map(function(obj,index){
+									var zd = Object.assign({}, zdsx);
+									zd.name = obj.DM;
+									zd.caption = obj.MC;
+									tagModel.push(zd);
+									setValue[obj.DM] = obj.ZDGJH;
+									if(obj.SFYY){
+										yysx = obj.DM;
+									}
+								});
+								$('#gjhwh-form').emapForm({
+									data: tagModel,
+									readonly: false,
+									model: 'v',
+									easyCheck:true,
+									textareaEasyCheck:true
+								});
+								$('#gjhwh-form').emapForm("setValue", setValue);
+							}
+						} else {
+							$.bhTip({content: '查询启用国际化语言配置失败',state: 'danger'});
+						}
+					});
+				});
+			},
+
+			initGjh: function(gjhDataList, againFlag) {
+				var self = this;
+				var modules = window.location.hash.split('/')[1];
+				if(!modules){
+					if(!againFlag){
+						setTimeout(function(){
+							self.initGjh(gjhDataList, true);
+						}, 1000);
+					}else{
+						console.warn('获取不到location.hash中的模块名');
+						return false;
+					}
+				}
+				$.each(gjhDataList, function(index, obj) {
+					//获取form
+					var $form = $('[emap-role="form"]');
+					if($form.length != 0){
+						var $dom = null;
+						if($form.find('.bh-table-form').length > 0){//table类型的表单 按钮直接放表单头部去
+							$dom = $('[data-name="'+obj.ZD+'"]').parents('[emap-role="form"]');
+							if (1 == $dom.length) {
+								var $btnDom = $('a[data-zdName="'+obj.ZD+'"]');
+								if(0 == $btnDom.length){
+									var html = '<a class="bh-btn bh-btn-primary gjhClick bh-btn-small bh-mv-8" data-tableName="' +obj.TABLENAME+ '" data-zdName="' +obj.ZD+ '" \
+									data-ywzd="' +(obj.YWZD||'')+ '"  data-mszd="' +(obj.MSZD||'')+ '" data-zdm = "'+obj.ZDM+'">'+obj.ZDM+'国际化</a>';
+									$dom.before(html);
+									self.bindGjhClickEvent($dom,obj,true);
+								}
+							}
+						}else{
+							var btnjl = $form.find('.bh-form-S').length > 0?'bh-mh-8':'';//v跟h类型都跟字段走，样式细微变化
+							$dom = $('[emap-role="form"] [data-field="'+obj.ZD+'"]');
+							if (1 == $dom.length && $dom.find('.public-gjh').length == 0) {
+								var html = '<div class="bh-l-inline public-gjh '+btnjl+' ">\
+								<a class="bh-btn bh-btn-primary gjhClick bh-btn-small" data-tableName="' +obj.TABLENAME+ '" data-zdName="' +obj.ZD+ '" \
+								data-ywzd="' +(obj.YWZD||'')+ '"  data-mszd="' +(obj.MSZD||'')+ '">国际化维护</a>\
+								</div>';
+								$dom.append(html);
+								self.bindGjhClickEvent($dom.parents('[emap-role="form"]'),obj,false);
+							}
+						}
+					}
+				});
+			}
+	};
+	setTimeout(function() {
+		window.publicFormIntervene.getGjhData();
+	}, 100);
+});

@@ -1,0 +1,105 @@
+define(function(require) {
+
+	var utils = require('utils');
+	var bs = require('./rlkbBS');
+	var _jsdm,_xnxqdm,_jsmc,_xnxqmc;
+	var viewConfig = {
+		initialize : function(params) {
+			var self= this;
+			bs.getXl();//初始化并缓存获取校历信息
+			_jsdm = params.JSDM;
+			_xnxqdm = params.XNXQDM;
+			_jsmc = params.JSMC;
+			_xnxqmc = params.XNXQMC;
+			var indexView = utils.loadCompiledPage('rlkb', require);
+			var footer = utils.loadCompiledPage('rlkbFooter', require);
+			var date = bs.getDate();//获取表头日期部分
+			var month = bs.getMonth(date);//根据日期获得月份数据
+			var courses = bs.getAllCourse(_xnxqdm,_jsdm);//获取所有课程信息
+			var detail = bs.getDetail();
+			var xxmc = bs.queryXtcs('XXDM','XXMC');
+			if(xxmc.length>0){
+				xxmc = xxmc[0].CSZA;
+			}else{
+				xxmc = '';
+			}
+			var width = 686;//一格40 当大于20的时候需要增加
+			if(bs.api.ZS>20){
+				var cz = bs.api.ZS - 20;//差值
+				width += cz*40;
+				if(cz%2 == 1){//为奇数
+					width = width - 18.27*(cz-1)-11.82;
+				}else{
+					width = width - 18.27*cz;
+				}
+			}
+			var subTitleColsapn=(bs.api.ZS<20?20:bs.api.ZS) - 6;//子标题colspan值
+			var TITLE_SPAN1 = parseInt(Math.floor((bs.api.ZS-8)/2));
+			var TITLE_SPAN2 = parseInt(Math.ceil((bs.api.ZS-8)/2)-2);
+			$.bhPaperPileDialog.show({
+				title:'教师日历课表',
+				content: indexView.render({MAINWIDTH:Number(width)+30,TITLE_SPAN1:TITLE_SPAN1,TITLE_SPAN2:TITLE_SPAN2,subTitleColsapn:subTitleColsapn,MONTH:month,DATE:date,COURSES:courses,DETAIL:detail,TITLE_GS:(bs.api.ZS<20?20:bs.api.ZS)+2,BZHBS:(bs.api.ZS<20?20:bs.api.ZS)+1,JSMC:_jsmc,XNXQMC:_xnxqmc,XXMC:xxmc,WIDTH:width,JAS_COLSPAN:(bs.api.ZS<20?3:bs.api.ZS-20+3)}),
+				render: function() {
+					//加载课程
+					bs.getCourseDetail(_xnxqdm,_jsdm);
+				},
+				footer:footer.render({})
+			});
+
+			this.eventMap = {
+					'[data-action="打印课表" ]':self.printHtml,
+					'[data-action="导出Excel" ]':self.exportExcel,
+					'[data-action=closeRlkb]':self.close
+			};
+		},
+		exportExcel:function(){
+			tableToExcel('rlkb-js-table',_xnxqmc+_jsmc+'教学日历课表');
+		},
+		printHtml:function(){
+			 $("#js-rlkb").printArea();
+		},
+		close:function(){
+			 $.bhPaperPileDialog.hide();
+		}
+	};
+	 //base64转码
+    var base64 = function (s) {
+        return window.btoa(unescape(encodeURIComponent(s)));
+    };
+    //替换table数据和worksheet名字
+    var format = function (s, c) {
+        return s.replace(/{(\w+)}/g,
+            function (m, p) {
+                return c[p];
+            });
+    };
+    function tableToExcel(tableid, sheetName) {
+        var uri = 'data:application/vnd.ms-excel;base64,';
+        var template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"' +
+            'xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
+            + '<x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets>'
+            + '</x:ExcelWorkbook></xml><![endif]-->' +
+            ' <style type="text/css">' +
+            'table td {' +
+            'border: 1px solid #000000;' +
+            'vnd.ms-excel.numberformat:@;'+
+            ' text-align: center;' +
+            ' }' +
+            '#bznr{text-align: left;}'+
+            '.xsingleBorder-zc{width:40pt;}'+
+            '#table-title{border: 0px solid #000000;}'+
+            '.x68{border: 0px solid #000000;}'+
+            '.x69{border: 0px solid #000000;}'+
+            '.x184{border: 0px solid #000000;}'+
+            '.x105{border: 0px solid #000000;}'+
+            '.x187{border: 0px solid #000000;}'+
+            '</style>' +
+            '</head><body ><table class="excelTable">{table}</table></body></html>';
+        if (!tableid.nodeType){
+        	tableid = document.getElementById(tableid);
+        }
+        var ctx = {worksheet: sheetName || 'Worksheet', table: tableid.innerHTML};
+        window.open(uri + base64(format(template, ctx)));
+    };
+	return viewConfig;
+});

@@ -1,0 +1,12 @@
+span.doc-area {
+    font-weight: normal;
+    font-size: 12px;
+    margin-left: 20px;
+    float: right;
+}
+.doc-area .app-doc {
+    margin-right: 10px;
+}
+.doc-area img {
+    margin-bottom: 4px;
+}

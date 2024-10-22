@@ -1,0 +1,396 @@
+/**
+ * 公共JS
+ * 作者：01115238
+ * 时间：2016-11-02
+ * async
+ */
+
+;var COMMON = {};
+
+REQUEST_PARAM_NAME = "requestParamStr=";
+
+(function(COMMON)
+{
+	/**
+	 * warning弹窗
+	 * common.js内部调用，不建议直接调用，请使用COMMON.dialogWarning
+	 */
+	COMMON.dialogWarningExt = function (title,content,returnCode,exceptionId, showType)
+	{
+		if ("1" == showType || 1 == showType)
+		{
+			BH_UTILS.bhDialogWarning({
+				title: title,
+				content:content,
+				buttons:[{
+					text: '确定',
+					className: 'bh-btn-default'
+				}],
+				subContent:'异常码：' + returnCode + "</br>异常串行码：" +  exceptionId
+			});		 
+		}
+		else
+		{
+			BH_UTILS.bhDialogWarning({
+				title: title,
+				content:content,
+				buttons:[{
+					text: '确定',
+					className: 'bh-btn-default'
+				}]
+			});	
+		}
+	};
+	
+	/**
+	 * warning弹窗
+	 * data 后台返回的resultJson
+	 */
+	COMMON.dialogWarning = function (title, data)
+	{
+		COMMON.dialogWarningExt(title, data.description,data.returnCode,data.exceptionId, data.showType);
+	};	
+	
+	/**
+	 * 公共处理异常情况
+	 * 不对外部提供
+	 */
+	COMMON.processError = function processError(resp,callBack)
+	{
+        //2016-04-19 qiyu 未登录则刷新页
+        if(resp.status == 401)
+        {
+            window.location.reload();
+        }
+        else if (resp.status == 403)
+        {
+			BH_UTILS.bhDialogWarning({
+				title: '提示',
+				content:'当前角色权限不足，请切换角色后重新操作',
+				buttons: [{
+					text: '确认',
+					className: 'bh-btn-warning',
+					callback: function() {
+					}
+				}]
+			});
+        }
+        // 长时间未操作提示错误
+        if(resp.statusText.indexOf("NetworkError") > -1)
+        {
+            BH_UTILS.bhDialogDanger({
+                title: '网络错误',
+                content:'您可以尝试刷新页面解决该问题',
+                buttons:[{
+                    text: '关闭',
+                    className: 'bh-btn-default'
+                }]
+            });
+        }
+        if (callBack)
+        {
+        	callBack(null);
+        }
+	};
+	
+	/**
+	 * 同步调用(不建议直接调用该方法)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * isHanndleResult 是否对结果处理 true是  false否
+	 * async 异步标识 false为同步， true为异步
+	 * isSuccessTips 成功时要不要弹窗
+	 * isQuery 是不是查询
+	 * 异步时请不要接收返回值，没有意义，请使用callBack处理
+	 */
+	COMMON.postSync = function postSync(url, jsonParam, callBack, isHanndleResult, async, isSuccessTips, isQuery)
+	{
+		//loading动画开启
+		$('.app-ajax-loading').jqxLoader('open');
+		
+		var result = null;
+		
+	    $.ajax(
+	    {
+	        url: url,
+	        type: 'post',
+	        data: REQUEST_PARAM_NAME + JSON.stringify(jsonParam),
+	        async: async,
+	        error: function(resp)
+	        {
+	        	COMMON.processError(resp, callBack);
+	        	//loading动画关闭
+	    		$('.app-ajax-loading').jqxLoader('close');
+	        },
+	        success: function(data)
+	        {
+	        	if (isQuery == true)
+	        	{
+	        		result = data.data;
+	        	}
+	        	else
+	        	{
+	        		result = data;
+	        	}
+				if(null == data.code || undefined == data.code || data.code == 0)
+				{
+					// 对结果进行处理，根据返回提示
+					if (isHanndleResult == true)
+					{
+						if (data.returnCode == RETURNCODE.SUCCESS && isSuccessTips == true)
+						{
+							PUB_FUNC.tPopup(data.description, "", 3000, function() 
+							{
+								if (callBack)
+								{
+									callBack(data);
+								}
+							});
+						}
+						else if(data.returnCode == RETURNCODE.SUCCESS && isSuccessTips == false)
+						{
+							if (callBack)
+							{
+								callBack(data);
+							}
+						}
+						else if (data.returnCode != RETURNCODE.SUCCESS)
+						{
+							result = null;
+			                COMMON.dialogWarning("提示",data);			                
+							if (callBack)
+							{
+								callBack(data);
+							}
+						}						
+					}
+					// 不对结果处理，留给调用者自己处理
+					else
+					{
+						if (callBack)
+						{
+							callBack(data);
+						}
+					}
+				}
+				else if(data.code == '500')
+				{
+					$.bhDialog({title:'权限不足，无法访问！',iconType:'warning'});
+					result = null;
+				}
+				else
+				{
+					$.bhDialog({title:'后台数据异常，请联系管理员',iconType:'warning'});
+					result = null;
+					if (callBack)
+					{
+						callBack(data);
+					}
+				}
+				//loading动画关闭
+	    		$('.app-ajax-loading').jqxLoader('close');
+	        }
+	    });
+
+	    return result;
+	};
+	
+	/**
+	 * 同步调用,没有loading动画(不建议直接调用该方法)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * isHanndleResult 是否对结果处理 true是  false否
+	 * async 异步标识 false为同步， true为异步
+	 * isSuccessTips 成功时要不要弹窗
+	 * isQuery 是不是查询
+	 * 异步时请不要接收返回值，没有意义，请使用callBack处理
+	 */
+	COMMON.postSyncNoLoading = function postSync(url, jsonParam, callBack, isHanndleResult, async, isSuccessTips, isQuery)
+	{
+		var result = null;
+		
+	    $.ajax(
+	    {
+	        url: url,
+	        type: 'post',
+	        data: REQUEST_PARAM_NAME + JSON.stringify(jsonParam),
+	        async: async,
+	        error: function(resp)
+	        {
+	        	COMMON.processError(resp, callBack);
+	        },
+	        success: function(data)
+	        {
+	        	if (isQuery == true)
+	        	{
+	        		result = data.data;
+	        	}
+	        	else
+	        	{
+	        		result = data;
+	        	}
+				if(null == data.code || undefined == data.code || data.code == 0)
+				{
+					// 对结果进行处理，根据返回提示
+					if (isHanndleResult == true)
+					{
+						if (data.returnCode == RETURNCODE.SUCCESS && isSuccessTips == true)
+						{
+							PUB_FUNC.tPopup(data.description, "", 3000, function() 
+							{
+								if (callBack)
+								{
+									callBack(data);
+								}
+							});
+						}
+						else if(data.returnCode == RETURNCODE.SUCCESS && isSuccessTips == false)
+						{
+							if (callBack)
+							{
+								callBack(data);
+							}
+						}
+						else if (data.returnCode != RETURNCODE.SUCCESS)
+						{
+							result = null;
+			                COMMON.dialogWarning("提示",data);			                
+							if (callBack)
+							{
+								callBack(data);
+							}
+						}						
+					}
+					// 不对结果处理，留给调用者自己处理
+					else
+					{
+						if (callBack)
+						{
+							callBack(data);
+						}
+					}
+				}
+				else if(data.code == '500')
+				{
+					$.bhDialog({title:'权限不足，无法访问！',iconType:'warning'});
+					result = null;
+				}
+				else
+				{
+					$.bhDialog({title:'后台数据异常，请联系管理员',iconType:'warning'});
+					result = null;
+					if (callBack)
+					{
+						callBack(data);
+					}
+				}
+	        }
+	    });
+
+	    return result;
+	};	
+	
+	/**
+	 * 同步调用
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：对返回结果处理，根据返回弹框
+	 */
+	COMMON.postSyncAuto = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSync(url, jsonParam, callBack, true, false,true, false);
+	};
+	
+	/**
+	 * 同步调用(不处理返回结果)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：不对返回结果处理，需调用者自己处理
+	 */
+	COMMON.postSyncCustom = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSync(url, jsonParam, callBack, false, false,true, false);
+	};
+	/**
+	 * 同步调用-无loading(不处理返回结果)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：不对返回结果处理，需调用者自己处理
+	 */
+	COMMON.postSyncCustomNoLoading = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSyncNoLoading(url, jsonParam, callBack, false, false,true, false);
+	};		
+	
+	/**
+	 * 异步调用(对结果自动处理)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * isSuccessTips 用于控制是否要进行成功提示
+	 * 异步时请不要接收返回值，没有意义，请使用callBack处理
+	 */
+	COMMON.postAsyncAuto = function postSync(url, jsonParam, callBack,isSuccessTips)
+	{
+		//默认有成功提示
+		if(isSuccessTips == undefined ||isSuccessTips == null){
+			isSuccessTips = true;
+		}
+	    return COMMON.postSync(url, jsonParam, callBack, true, true,isSuccessTips?isSuccessTips:false, false);
+	};
+
+	/**
+	 * 异步调用(不处理返回结果)
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 异步时请不要接收返回值，没有意义，请使用callBack处理
+	 */
+	COMMON.postAsyncCustom = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSync(url, jsonParam, callBack, false, true,true, false);
+	};	
+	
+	/**
+	 * 同步查询调用
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：对返回结果处理，根据返回弹框,成功时不提示弹窗
+	 */
+	COMMON.querySyncAuto = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSync(url, jsonParam, callBack, true, false, false, true);
+	};
+	/**
+	 * 同步查询调用-无Loading
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：对返回结果处理，根据返回弹框,成功时不提示弹窗
+	 */
+	COMMON.querySyncAutoNoLoading = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSyncNoLoading(url, jsonParam, callBack, true, false, false, true);
+	};	
+	
+	
+	/**
+	 * 异步查询调用
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：对返回结果处理，根据返回弹框,成功时不提示弹窗
+	 */
+	COMMON.queryAsyncAuto = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSync(url, jsonParam, callBack, true, true, false, true);
+	};
+	/**
+	 * 异步查询调用-无动画
+	 * jsonParam参数：必须为严格的完整JSON对象(不是JSON字符串)
+	 * callBack 回调，可以不传
+	 * 注：对返回结果处理，根据返回弹框,成功时不提示弹窗
+	 */
+	COMMON.queryAsyncAutoNoLoading = function postSync(url, jsonParam, callBack)
+	{
+	    return COMMON.postSyncNoLoading(url, jsonParam, callBack, true, true, false, true);
+	};	
+	
+	
+})(window.COMMON =COMMON);
